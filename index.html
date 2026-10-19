@@ -242,6 +242,188 @@
     .order-card{padding:16px}
   }
 
+
+  /* ===== スマホで「完成イメージ」が先に見える編集画面 ===== */
+  .wrap{max-width:650px;padding:8px 10px 42px}
+  .shop-strip{margin-bottom:8px;border-radius:12px}
+  .hero{
+    margin:0 0 10px;
+    padding:22px 16px 20px;
+    border:1px solid var(--line);
+    border-radius:18px;
+  }
+  .hero h1{font-size:30px}
+  .hero .lead{font-size:13px;line-height:1.6;margin-top:8px}
+  .hero .promise{margin-top:10px;gap:8px}
+  .hero .promise span{
+    border:1px solid #dce7ef;background:#f7fbfe;
+    border-radius:999px;padding:5px 8px;color:#607a8e;
+  }
+
+  .grid{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-top:0;
+  }
+  .preview{order:1;padding:12px;border-radius:18px}
+  .panel{order:2;padding:14px;border-radius:18px}
+
+  .preview-title{font-size:21px;font-weight:900}
+  .preview-title .step-no{
+    display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;
+    margin-right:7px;border-radius:999px;background:#eaf4fb;color:#477da7;
+    font-size:11px;font-weight:900;vertical-align:2px;
+  }
+  .photo-first{
+    display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;
+    margin-bottom:10px;
+  }
+  .photo-pick{
+    min-height:56px;border-radius:15px;
+    background:#4f8fc7;color:#fff;border-color:#4f8fc7;
+    font-size:18px;font-weight:900;
+  }
+  .photo-state{
+    max-width:120px;font-size:10px;line-height:1.35;color:#7b858e;text-align:right;
+  }
+  #photoInput{display:none}
+
+  .canvas-box{
+    min-height:0;padding:5px;border-radius:16px;
+    background:#edf1f4;
+  }
+  canvas{
+    width:100%;
+    max-height:none;
+    display:block;
+    border-radius:11px;
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+    cursor:grab;
+  }
+  canvas.dragging{cursor:grabbing}
+  .touch-tip{
+    padding:8px 4px 2px;text-align:center;
+    color:#74808a;font-size:10px;line-height:1.45
+  }
+  .preview-actions-mini{
+    display:grid;grid-template-columns:1fr;gap:7px;margin-top:8px
+  }
+  .preview-actions-mini button{min-height:42px}
+
+  .panel .section-title:first-child{
+    margin-top:0;
+  }
+  .panel-head{
+    display:flex;align-items:center;gap:8px;margin-bottom:10px;
+    font-size:18px;font-weight:900;color:#3f4850;
+  }
+  .panel-head .step-no{
+    display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;
+    border-radius:999px;background:#eef2f5;color:#5c6973;
+    font-size:11px;font-weight:900;
+  }
+
+  .layout-quick{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 12px
+  }
+  .layout-btn{
+    min-height:48px;border:1px solid #dce3e9;border-radius:12px;
+    background:#fff;padding:10px 12px;text-align:center;color:#4f5962;
+    font-size:16px;font-weight:900
+  }
+  .layout-btn.active{
+    border:2px solid #4f8fc7;background:#f3f9fd;color:#315f83
+  }
+  .layout-select-wrap{display:none}
+
+  .section-title{margin:15px 0 7px}
+  .correction-panel{border-radius:13px}
+  .note{display:none}
+  .btns{grid-template-columns:1fr}
+  #goOrderBtn{min-height:52px;border-radius:14px;font-size:17px}
+  #redrawBtn{display:none}
+
+  .order-card{
+    display:none;
+    border-radius:18px;
+    margin-top:10px;
+    padding:16px;
+  }
+  .order-card.show{display:block}
+  .order-card h2:before{
+    content:"03";
+    display:inline-flex;width:28px;height:28px;align-items:center;justify-content:center;
+    margin-right:8px;border-radius:999px;background:#eef2f5;color:#5b6974;
+    font-size:11px;vertical-align:2px;
+  }
+
+  @media(max-width:640px){
+    .wrap{padding:8px 7px 34px}
+    .hero{margin:0 0 9px;padding:18px 14px}
+    .hero h1{font-size:27px}
+    .preview,.panel{padding:11px}
+    .preview-head{margin-bottom:8px}
+    .chip{display:none}
+    .row2{grid-template-columns:1fr 1fr}
+    .correction-actions{grid-template-columns:1fr 1fr}
+  }
+
+
+  .survey-box{
+    width:100%;
+    padding:14px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:#fbfcfd;
+    overflow:hidden;
+  }
+  .survey-q{
+    display:block;
+    width:100%;
+    margin:0 0 10px;
+    font-size:13px;
+    font-weight:800;
+    line-height:1.55;
+    color:#45515a;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+  .survey-options{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:8px;
+    width:100%;
+  }
+  .survey-options label{
+    display:grid;
+    grid-template-columns:22px minmax(0,1fr);
+    align-items:start;
+    gap:8px;
+    width:100%;
+    margin:0;
+    padding:8px 9px;
+    border:1px solid #e3e8ec;
+    border-radius:8px;
+    background:#fff;
+    font-size:12px;
+    font-weight:500;
+    line-height:1.45;
+    color:#4f5962;
+  }
+  .survey-options input[type="radio"]{
+    width:18px;
+    height:18px;
+    margin:0;
+    align-self:start;
+  }
+  .survey-options span{
+    min-width:0;
+    overflow-wrap:anywhere;
+  }
+
 </style>
 </head>
 <body>
@@ -258,17 +440,22 @@
 
   <div class="grid">
     <div class="panel">
-      <div class="section-title">基本設定</div>
+      <div class="panel-head"><span class="step-no">02</span>写真とレイアウトを整える</div>
+
+      <div class="layout-quick">
+        <button class="layout-btn active" data-layout="portraitPhoto" type="button">たて写真</button>
+        <button class="layout-btn" data-layout="landscapePhoto" type="button">よこ写真</button>
+      </div>
       <div class="controls">
         <div class="row2">
           <div class="control">
             <label for="paperSize">用紙サイズ</label>
             <select id="paperSize">
-              <option value="A4">A4</option>
-              <option value="A3">A3</option>
+              <option value="A4">A4（210mm×297mm）</option>
+              <option value="A3">A3（297mm×420mm）</option>
             </select>
           </div>
-          <div class="control">
+          <div class="control layout-select-wrap">
             <label for="layoutType">レイアウト</label>
             <select id="layoutType">
               <option value="portraitPhoto">縦写真向け</option>
@@ -277,30 +464,12 @@
           </div>
         </div>
 
-        <div class="control">
-          <label for="photoInput">写真を選ぶ</label>
-          <input id="photoInput" type="file" accept="image/*">
-        </div>
+        <input id="photoInput" type="file" accept="image/*">
+        <button class="ghost" id="reselectPhotoBtn" type="button">写真を選び直す</button>
 
-        <div class="section-title">写真の調整</div>
-
-        <div class="control">
-          <label for="zoom">大きさ</label>
-          <input id="zoom" type="range" min="60" max="220" step="1" value="100">
-        </div>
-        <div class="control">
-          <label for="offsetX">左右</label>
-          <input id="offsetX" type="range" min="-100" max="100" step="1" value="0">
-        </div>
-        <div class="control">
-          <label for="offsetY">上下</label>
-          <input id="offsetY" type="range" min="-100" max="100" step="1" value="0">
-        </div>
-        <div class="row2">
-          <button class="ghost" id="rotateLeft" type="button">↶ 左へ90°</button>
-          <button class="ghost" id="rotateRight" type="button">↷ 右へ90°</button>
-        </div>
-        <button class="good" id="fitBtn" type="button">ぴったりに戻す</button>
+        <input id="zoom" type="range" min="60" max="220" value="100" step="1" style="display:none">
+        <input id="offsetX" type="range" min="-100" max="100" step="1" value="0" style="display:none">
+        <input id="offsetY" type="range" min="-100" max="100" step="1" value="0" style="display:none">
 
         <div class="section-title">写真補正</div>
         <div class="correction-panel">
@@ -331,7 +500,7 @@
 
         <div class="section-title">申し込み</div>
         <div class="btns">
-          <button class="primary" id="goOrderBtn" type="button">この内容で申し込む</button>
+          <button class="primary" id="goOrderBtn" type="button">できあがりを確認して申し込む</button>
           <button class="ghost" id="redrawBtn" type="button">再描画</button>
         </div>
 
@@ -344,13 +513,26 @@
     <div class="preview">
       <div class="preview-head">
         <div class="title-wrap">
-          <div class="preview-title">プレビュー</div>
+          <div class="preview-title"><span class="step-no">01</span>できあがりイメージ</div>
           <div class="small" id="sizeLabel">A4 / 縦写真向け</div>
         </div>
         <div class="chip" id="infoChip">2027年 1月〜12月</div>
       </div>
+
+      <div class="photo-first">
+        <button class="photo-pick" id="bigPhotoBtn" type="button">＋ 写真を選ぶ／撮る</button>
+        <div class="photo-state" id="photoState">まだ写真が<br>選ばれていません</div>
+      </div>
+
       <div class="canvas-box">
         <canvas id="canvas" width="3508" height="2480"></canvas>
+      </div>
+      <div class="touch-tip" id="touchTip">
+        写真を入れたら、写真の上を指で動かせます。<br>
+        2本指で拡大・縮小・回転できます。
+      </div>
+      <div class="preview-actions-mini">
+        <button class="ghost" id="previewFitBtn" type="button">位置を戻す</button>
       </div>
     </div>
   </div>
@@ -399,27 +581,21 @@
 
       <div class="form-field full">
         <div class="survey-box">
-          <div class="survey-q" id="surveyQuestion">アンケート</div>
+          <div class="survey-q" id="surveyQuestion">このカレンダー企画をどこで知りましたか？</div>
           <div class="survey-options" id="surveyOptions"></div>
         </div>
       </div>
     </div>
 
     <div class="privacy-box">
-      <strong>個人情報・写真データのお取り扱いについて</strong><br>
-      お名前・ご住所・電話番号などの個人情報は、この企画のカレンダーのお届け、お問い合わせ対応のために利用し、適切に管理します。
-      営業所からのお知らせ等への利用は、下の任意同意をいただいた場合に限ります。<br>
-      写真データは、営業所で「受渡済」と登録した日から30日後に削除します。
+      <strong>個人情報・写真データの取り扱いについて</strong><br>
+      個人情報は、新聞販売所において適切に管理し、この企画のカレンダーのお届け、販売所からの各種ご連絡、新聞・雑誌等のご案内などに利用させていただきます。<br>
+      写真データは、「受渡済」後、7日後に削除します。
     </div>
 
     <label class="consent-row">
       <input type="checkbox" id="privacyConsent">
       <span>上記の個人情報・写真データの取り扱いに同意して申し込みます。<span class="required">必須</span></span>
-    </label>
-
-    <label class="consent-row">
-      <input type="checkbox" id="noticeConsent">
-      <span>この営業所からのお知らせ・ご案内に個人情報を利用することに同意します。<b>（任意）</b></span>
     </label>
 
     <button class="submit-order" id="submitOrderBtn" type="button">この内容で申し込む</button>
@@ -487,6 +663,10 @@ function isJapanHoliday(year, month, day){
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const photoInput = document.getElementById('photoInput');
+const bigPhotoBtn = document.getElementById('bigPhotoBtn');
+const reselectPhotoBtn = document.getElementById('reselectPhotoBtn');
+const photoState = document.getElementById('photoState');
+const orderSection = document.getElementById('orderSection');
 const paperSize = document.getElementById('paperSize');
 const layoutType = document.getElementById('layoutType');
 const zoom = document.getElementById('zoom');
@@ -509,7 +689,7 @@ const phone=document.getElementById('phone');
 const copies=document.getElementById('copies');
 const freeNote=document.getElementById('freeNote');
 const privacyConsent=document.getElementById('privacyConsent');
-const noticeConsent=document.getElementById('noticeConsent');
+const noticeConsent={checked:true};
 const surveyQuestionEl=document.getElementById('surveyQuestion');
 const surveyOptionsEl=document.getElementById('surveyOptions');
 const orderSummary=document.getElementById('orderSummary');
@@ -547,17 +727,39 @@ const SIZES = {
 };
 
 photoInput.addEventListener('change', handlePhoto);
+bigPhotoBtn.addEventListener('click', ()=>photoInput.click());
+reselectPhotoBtn.addEventListener('click', ()=>photoInput.click());
+
+document.querySelectorAll('.layout-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    layoutType.value = btn.dataset.layout;
+    document.querySelectorAll('.layout-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    fitPhoto();
+    draw();
+  });
+});
 paperSize.addEventListener('change', ()=>{ fitPhoto(); draw(); });
-layoutType.addEventListener('change', ()=>{ fitPhoto(); draw(); });
+layoutType.addEventListener('change', ()=>{
+  document.querySelectorAll('.layout-btn').forEach(b=>b.classList.toggle('active', b.dataset.layout===layoutType.value));
+  fitPhoto();
+  draw();
+});
 zoom.addEventListener('input', draw);
 offsetX.addEventListener('input', draw);
 offsetY.addEventListener('input', draw);
-document.getElementById('rotateLeft').addEventListener('click', ()=>{ rotation -= Math.PI/2; fitPhoto(false); draw(); });
-document.getElementById('rotateRight').addEventListener('click', ()=>{ rotation += Math.PI/2; fitPhoto(false); draw(); });
-document.getElementById('fitBtn').addEventListener('click', ()=>{ fitPhoto(); draw(); });
 document.getElementById('redrawBtn').addEventListener('click', draw);
+document.getElementById('previewFitBtn').addEventListener('click', ()=>{
+  if(!img){ photoInput.click(); return; }
+  fitPhoto(); draw();
+});
 document.getElementById('goOrderBtn').addEventListener('click', ()=>{
-  document.getElementById('orderSection').scrollIntoView({behavior:'smooth',block:'start'});
+  if(!img){
+    alert('先に写真を選んでください。');
+    bigPhotoBtn.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  orderSection.classList.add('show');
+  orderSection.scrollIntoView({behavior:'smooth',block:'start'});
 });
 
 brightnessRange.addEventListener('input', ()=>{
@@ -591,6 +793,151 @@ document.getElementById('resetCorrectionBtn').addEventListener('click', ()=>{
 });
 
 document.getElementById('autoCorrectBtn').addEventListener('click', autoCorrectPhoto);
+
+
+// ===== 写真をキャンバス上で直接操作 =====
+const pointerMap = new Map();
+let gestureStart = null;
+
+function canvasPoint(clientX, clientY){
+  const r = canvas.getBoundingClientRect();
+  return {
+    x:(clientX-r.left) * canvas.width / r.width,
+    y:(clientY-r.top) * canvas.height / r.height
+  };
+}
+function currentPhotoRect(){
+  const mode=currentMode();
+  return getLayoutRects(mode).photo;
+}
+function pointInRect(p,r){
+  return p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h;
+}
+function pointerPoints(){
+  return [...pointerMap.values()].map(p=>canvasPoint(p.x,p.y));
+}
+function normalizeAngle(a){
+  while(a>Math.PI)a-=Math.PI*2;
+  while(a<-Math.PI)a+=Math.PI*2;
+  return a;
+}
+
+canvas.addEventListener('pointerdown', e=>{
+  if(!img){
+    photoInput.click();
+    return;
+  }
+  const p=canvasPoint(e.clientX,e.clientY);
+  if(pointerMap.size===0 && !pointInRect(p,currentPhotoRect())) return;
+
+  canvas.setPointerCapture?.(e.pointerId);
+  pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  canvas.classList.add('dragging');
+
+  const pts=pointerPoints();
+  const rect=currentPhotoRect();
+
+  if(pts.length===1){
+    gestureStart={
+      kind:'drag',
+      p:pts[0],
+      offsetX:Number(offsetX.value),
+      offsetY:Number(offsetY.value),
+      rect
+    };
+  }else if(pts.length>=2){
+    const a=pts[0], b=pts[1];
+    gestureStart={
+      kind:'pinch',
+      distance:Math.hypot(b.x-a.x,b.y-a.y),
+      angle:Math.atan2(b.y-a.y,b.x-a.x),
+      center:{x:(a.x+b.x)/2,y:(a.y+b.y)/2},
+      zoom:Number(zoom.value),
+      rotation,
+      offsetX:Number(offsetX.value),
+      offsetY:Number(offsetY.value),
+      rect
+    };
+  }
+  e.preventDefault();
+});
+
+canvas.addEventListener('pointermove', e=>{
+  if(!img || !pointerMap.has(e.pointerId)) return;
+  pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const pts=pointerPoints();
+
+  if(pts.length===1 && gestureStart?.kind==='drag'){
+    const p=pts[0], s=gestureStart, r=s.rect;
+    const dx=p.x-s.p.x, dy=p.y-s.p.y;
+    offsetX.value=clamp(s.offsetX + (dx/(r.w*0.32))*100,-100,100);
+    offsetY.value=clamp(s.offsetY + (dy/(r.h*0.32))*100,-100,100);
+    draw();
+  }else if(pts.length>=2){
+    const a=pts[0], b=pts[1];
+    const dist=Math.hypot(b.x-a.x,b.y-a.y);
+    const angle=Math.atan2(b.y-a.y,b.x-a.x);
+    const center={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+
+    if(gestureStart?.kind!=='pinch'){
+      const r=currentPhotoRect();
+      gestureStart={
+        kind:'pinch',
+        distance:dist,
+        angle,
+        center,
+        zoom:Number(zoom.value),
+        rotation,
+        offsetX:Number(offsetX.value),
+        offsetY:Number(offsetY.value),
+        rect:r
+      };
+    }
+
+    const s=gestureStart, r=s.rect;
+    if(s.distance>0){
+      zoom.value=clamp(s.zoom*(dist/s.distance),60,220);
+    }
+    rotation=s.rotation + normalizeAngle(angle-s.angle);
+
+    const dx=center.x-s.center.x, dy=center.y-s.center.y;
+    offsetX.value=clamp(s.offsetX + (dx/(r.w*0.32))*100,-100,100);
+    offsetY.value=clamp(s.offsetY + (dy/(r.h*0.32))*100,-100,100);
+    draw();
+  }
+  e.preventDefault();
+});
+
+function endCanvasPointer(e){
+  pointerMap.delete(e.pointerId);
+  if(pointerMap.size===0){
+    gestureStart=null;
+    canvas.classList.remove('dragging');
+  }else if(pointerMap.size===1){
+    const pts=pointerPoints();
+    gestureStart={
+      kind:'drag',
+      p:pts[0],
+      offsetX:Number(offsetX.value),
+      offsetY:Number(offsetY.value),
+      rect:currentPhotoRect()
+    };
+  }else{
+    gestureStart=null;
+  }
+}
+canvas.addEventListener('pointerup',endCanvasPointer);
+canvas.addEventListener('pointercancel',endCanvasPointer);
+
+canvas.addEventListener('wheel',e=>{
+  if(!img)return;
+  const p=canvasPoint(e.clientX,e.clientY);
+  if(!pointInRect(p,currentPhotoRect()))return;
+  zoom.value=clamp(Number(zoom.value)*(e.deltaY<0?1.05:0.95),60,220);
+  draw();
+  e.preventDefault();
+},{passive:false});
+
 
 
 async function loadShopSettings(){
@@ -744,8 +1091,8 @@ submitOrderBtn.addEventListener("click",async ()=>{
 
       privacyConsent:true,
       noticeConsent:!!noticeConsent.checked,
-      privacyPurpose:"calendar-delivery-and-support",
-      photoRetentionPolicy:"delete-30-days-after-delivery",
+      privacyPurpose:"calendar-delivery-contact-and-newspaper-magazine-information",
+      photoRetentionPolicy:"delete-7-days-after-delivery",
 
       ownerUid:user.uid,
       storagePath,
@@ -820,6 +1167,9 @@ function handlePhoto(e){
     correctionNote.textContent = '';
     fitPhoto();
     draw();
+    bigPhotoBtn.textContent = '写真を選び直す';
+    photoState.innerHTML = '写真を配置しました<br>指で位置を調整できます';
+    document.querySelector('.preview').scrollIntoView({behavior:'smooth',block:'start'});
   };
   image.src = imgURL;
 }
@@ -1097,7 +1447,7 @@ function drawPhotoRect(rect, mode){
     ctx.textBaseline = 'middle';
     ctx.fillText('ここに写真が入ります', rect.x + rect.w/2, rect.y + rect.h/2 - 24);
     ctx.font = `500 ${mode.paper === 'A4' ? 26 : 34}px sans-serif`;
-    ctx.fillText('左の「写真を選ぶ」からアップロード', rect.x + rect.w/2, rect.y + rect.h/2 + 28);
+    ctx.fillText('上の「写真を選ぶ／撮る」から選択', rect.x + rect.w/2, rect.y + rect.h/2 + 28);
   }
 
   ctx.restore();
