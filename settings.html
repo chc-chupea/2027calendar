@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2027カレンダー｜営業所設定</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;background:#f5f7f9;color:#29323a}
+.wrap{max-width:760px;margin:30px auto;padding:0 14px}.card{background:#fff;border:1px solid #dfe5ea;border-radius:12px;padding:20px;margin-bottom:14px}
+h1{font-size:22px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}
+label{display:grid;gap:6px;font-size:12px;font-weight:800;color:#56616b}input,textarea{width:100%;padding:12px;border:1px solid #dfe5ea;border-radius:8px;font:inherit}textarea{min-height:110px}
+button{border:0;border-radius:8px;padding:12px 14px;font-weight:900;cursor:pointer}.primary{background:#4f8fc7;color:#fff}.ghost{background:#fff;border:1px solid #dfe5ea;color:#53606a}
+.links{display:grid;gap:9px;margin-top:12px}.url{background:#f7f9fb;padding:10px;border-radius:7px;font-size:12px;word-break:break-all}
+.hidden{display:none}.msg{font-size:12px;color:#6f7982;margin-top:8px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+</head><body>
+<div class="wrap">
+  <div class="card"><h1>2027カレンダー｜営業所設定</h1><p>営業所ごとの受付URL・料金・アンケートを設定します。</p></div>
+
+  <div id="loginCard" class="card">
+    <h2>スタッフログイン</h2>
+    <input id="email" type="email" placeholder="メールアドレス">
+    <input id="password" type="password" placeholder="パスワード" style="margin-top:8px">
+    <button id="loginBtn" class="primary" style="margin-top:10px">ログイン</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+
+  <div id="settingsCard" class="card hidden">
+    <div class="grid">
+      <label>営業所ID
+        <input id="shopIdInput" placeholder="例：hatsukaichi-east">
+      </label>
+      <label>営業所コード
+        <input id="shopCode" maxlength="4" placeholder="例：H">
+      </label>
+      <label>管理画面ログイン用メール
+        <input id="adminLoginEmail" type="email" placeholder="Firebase Authenticationに登録したメール">
+      </label>
+      <label class="full">営業所名
+        <input id="shopName" placeholder="例：廿日市東営業所">
+      </label>
+      <label>A4料金（税込）
+        <input id="a4Price" type="number" min="0" step="10">
+      </label>
+      <label>A3料金（税込）
+        <input id="a3Price" type="number" min="0" step="10">
+      </label>
+      <label class="full">この営業所の管理画面を閲覧できるスタッフメール（1行に1件）
+        <textarea id="staffEmails" placeholder="例：staff@example.com"></textarea>
+      </label>
+      <label class="full">アンケート質問
+        <input id="surveyQuestion">
+      </label>
+      <label class="full">アンケート選択肢（1行に1つ）
+        <textarea id="surveyOptions"></textarea>
+      </label>
+    </div>
+
+    <button id="saveBtn" class="primary" style="margin-top:14px">保存する</button>
+    <button id="logoutBtn" class="ghost" style="margin-top:14px">ログアウト</button>
+    <div id="msg" class="msg"></div>
+
+    <div class="links">
+      <b>保存後に使うURL</b>
+      <div><small>お客様用</small><div id="customerUrl" class="url"></div></div>
+      <div><small>営業所管理用</small><div id="adminUrl" class="url"></div></div>
+      <div><small>設定用</small><div id="settingsUrl" class="url"></div></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+
+const firebaseConfig={apiKey:"AIzaSyBKSYZgaSVTu-HO_lS1Tp2eFjSjMuOONNI",authDomain:"my-uchiwa-queue.firebaseapp.com",projectId:"my-uchiwa-queue",storageBucket:"my-uchiwa-queue.firebasestorage.app",messagingSenderId:"245883628081",appId:"1:245883628081:web:ab7f00f01ba256ebca8310",measurementId:"G-W4S3EKL9TY"};
+const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
+const params=new URLSearchParams(location.search);
+let shopId=(params.get("shop")||"main").replace(/[^a-zA-Z0-9_-]/g,"")||"main";
+const d={shopName:"カレンダー受付営業所",shopCode:"C",a4Price:0,a3Price:0,surveyQuestion:"このカレンダー企画をどこで知りましたか？",surveyOptions:["新聞折込","営業所からの案内","家族・知人","その他"]};
+
+const $=id=>document.getElementById(id);
+$("loginBtn").onclick=async()=>{
+ try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);$("loginMsg").textContent=""}
+ catch(e){console.error(e);$("loginMsg").textContent="ログインできませんでした。"}
+};
+$("logoutBtn").onclick=()=>signOut(auth);
+
+onAuthStateChanged(auth,async u=>{
+ const ok=!!u?.email;
+ $("loginCard").classList.toggle("hidden",ok);
+ $("settingsCard").classList.toggle("hidden",!ok);
+ if(ok)await load();
+});
+
+async function load(){
+ $("shopIdInput").value=shopId;
+ try{
+  const s=await getDoc(doc(db,"settings",shopId));
+  const x=s.exists()?{...d,...s.data()}:{...d};
+  $("shopName").value=x.shopName||"";
+  $("shopCode").value=x.shopCode||"C";
+  $("adminLoginEmail").value=x.adminLoginEmail||auth.currentUser?.email||"";
+  $("a4Price").value=Number(x.a4Price||0);
+  $("a3Price").value=Number(x.a3Price||0);
+  $("surveyQuestion").value=x.surveyQuestion||d.surveyQuestion;
+  $("surveyOptions").value=(x.surveyOptions||d.surveyOptions).join("\n");
+  try{
+    const a=await getDoc(doc(db,"staffAccess",shopId));
+    const emails=a.exists()?(a.data().emails||[]):[];
+    $("staffEmails").value=emails.length?emails.join("\n"):(auth.currentUser?.email||"");
+  }catch(e){
+    console.error(e);
+    $("staffEmails").value=auth.currentUser?.email||"";
+  }
+ }catch(e){console.error(e)}
+ renderUrls();
+}
+function renderUrls(){
+ const id=($("shopIdInput").value.trim()||"main").replace(/[^a-zA-Z0-9_-]/g,"")||"main";
+ const base=new URL(".",location.href);
+ $("customerUrl").textContent=new URL(`index.html?shop=${id}`,base).href;
+ $("adminUrl").textContent=new URL(`admin.html?shop=${id}`,base).href;
+ $("settingsUrl").textContent=new URL(`settings.html?shop=${id}`,base).href;
+}
+$("shopIdInput").addEventListener("input",renderUrls);
+
+$("saveBtn").onclick=async()=>{
+ const id=($("shopIdInput").value.trim()||"main").replace(/[^a-zA-Z0-9_-]/g,"")||"main";
+ const opts=$("surveyOptions").value.split("\n").map(x=>x.trim()).filter(Boolean);
+ try{
+  await setDoc(doc(db,"settings",id),{
+   shopId:id,
+   shopName:$("shopName").value.trim()||d.shopName,
+   shopCode:($("shopCode").value.trim()||"C").toUpperCase(),
+   adminLoginEmail:$("adminLoginEmail").value.trim().toLowerCase(),
+   a4Price:Number($("a4Price").value||0),
+   a3Price:Number($("a3Price").value||0),
+   surveyQuestion:$("surveyQuestion").value.trim()||d.surveyQuestion,
+   surveyOptions:opts.length?opts:d.surveyOptions,
+   annualCalendar2027Enabled:true,
+   updatedAt:serverTimestamp()
+  },{merge:true});
+
+  const staffEmails=$("staffEmails").value
+    .split("\n").map(x=>x.trim().toLowerCase()).filter(Boolean);
+  const loginEmail=$("adminLoginEmail").value.trim().toLowerCase();
+  if(loginEmail && !staffEmails.includes(loginEmail)) staffEmails.push(loginEmail);
+  if(!staffEmails.length && auth.currentUser?.email){
+    staffEmails.push(auth.currentUser.email.toLowerCase());
+  }
+  await setDoc(doc(db,"staffAccess",id),{
+    shopId:id,
+    emails:staffEmails,
+    updatedAt:serverTimestamp()
+  },{merge:true});
+
+  shopId=id;
+  history.replaceState(null,"",`?shop=${encodeURIComponent(id)}`);
+  $("msg").textContent="保存しました。";
+  renderUrls();
+ }catch(e){console.error(e);$("msg").textContent="保存できませんでした。"}
+};
+</script>
+</body></html>

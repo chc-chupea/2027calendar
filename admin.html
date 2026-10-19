@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2027カレンダー｜営業所管理</title>
+<style>
+:root{--ink:#283039;--muted:#727d86;--line:#dfe5ea;--blue:#4f8fc7;--wait:#fff4df;--ready:#eaf7ef;--done:#f0f1f3}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;background:#f5f7f9;color:var(--ink)}
+header{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid var(--line);padding:12px 15px}
+.bar{max-width:1260px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+h1{font-size:18px;margin:0}.sub{font-size:11px;color:var(--muted);margin-top:3px}
+button,a.btn{border:0;border-radius:8px;padding:10px 12px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-block}
+.wrap{max-width:1260px;margin:16px auto;padding:0 14px 40px}
+.login{max-width:440px;margin:50px auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px}
+.login input{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;margin:5px 0 10px}
+.primary{background:var(--blue);color:#fff}.ghost{background:#fff;border:1px solid var(--line);color:#44515b}
+.hidden{display:none!important}
+.auto-panel{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.auto-copy{font-size:12px;color:var(--muted)}.auto-toggle{min-width:145px;background:#f0f2f4;color:#56616b}.auto-toggle.on{background:#e8f6ee;color:#286342}
+.filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px}.filters button{background:#fff;border:1px solid var(--line);color:#53606a}.filters button.active{background:#3b4852;color:#fff}
+.stats{font-size:12px;color:var(--muted);margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.thumb{background:#eef1f3;display:flex;align-items:center;justify-content:center;min-height:180px}.thumb img{width:100%;height:100%;object-fit:contain;background:#fff}
+.body{padding:13px}.top{display:flex;justify-content:space-between;align-items:center;gap:8px}.num{font-size:24px;font-weight:900}.badge{padding:5px 8px;border-radius:999px;font-size:10px;font-weight:900}
+.WAIT{background:var(--wait);color:#7e5915}.UPLOADING{background:#eaf2ff;color:#3d5f99}.UPLOAD_ERROR{background:#ffefed;color:#a2382d}.READY{background:var(--ready);color:#286342}.DONE{background:var(--done);color:#656b70}
+.meta{font-size:12px;line-height:1.6;color:var(--muted);margin:8px 0}.personal{background:#f8fafb;border:1px solid #e4e9ed;border-radius:8px;padding:10px;font-size:12px;line-height:1.7;margin:9px 0}.personal b{color:#39444c}
+.note{white-space:pre-wrap}.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.actions .wide{grid-column:1/-1}.print{background:#36424b;color:#fff}.png{background:#edf4fa;color:#456b8b}
+.state-toggles{display:grid;grid-template-columns:1fr 1fr;gap:7px;grid-column:1/-1}.state-toggle{background:#fff;border:1px solid var(--line);color:#58646d}.state-toggle.on{background:#e9f6ee;color:#2b6748}.state-toggle.delivered{background:#eff0f2;color:#535b61}.state-toggle:disabled{opacity:.4}
+.cleanup{background:#fff7e9;color:#785716;border:1px solid #eedebc}
+.empty{padding:40px;text-align:center;color:#7d8790;background:#fff;border-radius:10px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}.bar{align-items:flex-start}}
+
+.label-tools{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  background:#fff;border:1px solid var(--line);border-radius:10px;
+  padding:11px 12px;margin-bottom:12px
+}
+.label-tools .count{font-size:12px;color:var(--muted);margin-right:auto}
+.label-btn{background:#566a78;color:#fff}
+.label-clear{background:#fff;border:1px solid var(--line);color:#58646d}
+.select-wrap{display:flex;align-items:center;gap:7px;font-size:11px;color:#6a747c;margin:0 0 8px}
+.select-wrap input{width:18px;height:18px}
+
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div><h1 id="title">2027カレンダー｜営業所管理</h1><div class="sub"><span id="shopName">営業所</span> ／ <span id="shopIdText"></span></div></div>
+    <div><button id="cleanupBtn" class="cleanup hidden">期限超過写真を削除</button> <button id="logoutBtn" class="ghost hidden">ログアウト</button></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="loginPanel" class="login">
+    <h2>スタッフ用 管理画面</h2>
+    <p class="sub">営業所の管理パスワードを入力してください。</p>
+    <input id="password" type="password" autocomplete="current-password" placeholder="パスワード">
+    <button id="loginBtn" class="primary">開く</button>
+    <div id="loginMsg" class="sub" style="margin-top:10px"></div>
+  </section>
+
+  <section id="appPanel" class="hidden">
+    <div class="auto-panel">
+      <div><b>このPCの自動印刷</b><div class="auto-copy" id="autoNote">OFF：受付が来たら「印刷」を押します。</div></div>
+      <button id="autoToggle" class="auto-toggle">自動印刷 OFF</button>
+    </div>
+
+    <div class="label-tools">
+      <div class="count">ラベル選択：<b id="labelCount">0</b>件 / 12件</div>
+      <button id="selectFirst12Btn" class="ghost">表示中から12件選択</button>
+      <button id="clearLabelsBtn" class="label-clear">選択解除</button>
+      <button id="printLabelsBtn" class="label-btn">お届け用ラベル印刷</button>
+    </div>
+
+    <div class="filters">
+      <button class="active" data-filter="WAIT">未印刷</button>
+      <button data-filter="UPLOAD_ERROR">送信エラー</button>
+      <button data-filter="UPLOADING">送信中</button>
+      <button data-filter="READY">印刷済み</button>
+      <button data-filter="DONE">受渡済み</button>
+      <button data-filter="ALL">すべて</button>
+    </div>
+    <div id="stats" class="stats">読み込み中…</div>
+    <div id="grid" class="grid"></div>
+  </section>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import {
+  getFirestore, collection, query, where, doc, getDoc, updateDoc,
+  serverTimestamp, onSnapshot, runTransaction, Timestamp, deleteField
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+import { getStorage, ref, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+
+const firebaseConfig={
+  apiKey:"AIzaSyBKSYZgaSVTu-HO_lS1Tp2eFjSjMuOONNI",
+  authDomain:"my-uchiwa-queue.firebaseapp.com",
+  projectId:"my-uchiwa-queue",
+  storageBucket:"my-uchiwa-queue.firebasestorage.app",
+  messagingSenderId:"245883628081",
+  appId:"1:245883628081:web:ab7f00f01ba256ebca8310",
+  measurementId:"G-W4S3EKL9TY"
+};
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app), storage=getStorage(app), auth=getAuth(app);
+const SOURCE="annual-photo-calendar-2027";
+const params=new URLSearchParams(location.search);
+const shopId=(params.get("shop")||"main").replace(/[^a-zA-Z0-9_-]/g,"")||"main";
+const DAY=24*60*60*1000;
+
+let shopSettings={shopName:"カレンダー受付営業所",shopCode:"C"};
+let all=[], filter="WAIT", unsub=null, snapshotInitialized=false;
+let selectedLabels=new Set();
+const grid=document.getElementById("grid"), stats=document.getElementById("stats");
+
+const AUTO_KEY=`annual-calendar-autoprint:${shopId}`;
+let autoEnabled=localStorage.getItem(AUTO_KEY)==="1";
+let printQueue=[], printBusy=false, queued=new Set();
+
+function esc(s){return String(s??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
+function ts(v){try{return v?.toMillis?.()||0}catch{return 0}}
+function fmt(v){try{return v?.toDate?.().toLocaleString("ja-JP")||""}catch{return ""}}
+function money(v){return Number(v)>0?`${Number(v).toLocaleString("ja-JP")}円`:"—"}
+
+async function loadSettings(){
+  try{
+    const s=await getDoc(doc(db,"settings",shopId));
+    if(s.exists()) shopSettings={...shopSettings,...s.data()};
+  }catch(e){console.error(e)}
+  document.getElementById("shopName").textContent=shopSettings.shopName||"営業所";
+  document.getElementById("shopIdText").textContent=`shop=${shopId}`;
+  document.getElementById("title").textContent=`${shopSettings.shopName||"営業所"}｜2027カレンダー管理`;
+  document.title=`${shopSettings.shopName||"営業所"}｜2027カレンダー管理`;
+}
+
+let adminLoginEmail="";
+
+async function loadPublicLoginSetting(){
+  try{
+    const s=await getDoc(doc(db,"settings",shopId));
+    if(s.exists()){
+      shopSettings={...shopSettings,...s.data()};
+      adminLoginEmail=String(s.data().adminLoginEmail||"").trim().toLowerCase();
+    }
+  }catch(e){console.error(e)}
+}
+
+document.getElementById("loginBtn").onclick=async()=>{
+  const password=document.getElementById("password").value;
+  const msg=document.getElementById("loginMsg");
+  if(!password){
+    msg.textContent="パスワードを入力してください。";
+    return;
+  }
+  if(!adminLoginEmail){
+    msg.textContent="管理用ログイン設定がありません。settings.htmlで設定してください。";
+    return;
+  }
+  msg.textContent="確認中…";
+  try{
+    await signInWithEmailAndPassword(auth,adminLoginEmail,password);
+    msg.textContent="";
+  }catch(e){
+    console.error(e);
+    msg.textContent="パスワードが違います。";
+  }
+};
+document.getElementById("logoutBtn").onclick=()=>signOut(auth);
+
+await loadPublicLoginSetting();
+
+onAuthStateChanged(auth,async user=>{
+  const staff=!!user && !!user.email;
+  document.getElementById("loginPanel").classList.toggle("hidden",staff);
+  document.getElementById("appPanel").classList.toggle("hidden",!staff);
+  document.getElementById("logoutBtn").classList.toggle("hidden",!staff);
+  document.getElementById("cleanupBtn").classList.toggle("hidden",!staff);
+  if(staff){await loadSettings();startWatch()}
+  else if(unsub){unsub();unsub=null}
+});
+
+function updateAutoUI(){
+  const b=document.getElementById("autoToggle"),n=document.getElementById("autoNote");
+  b.classList.toggle("on",autoEnabled);
+  b.textContent=autoEnabled?"自動印刷 ON":"自動印刷 OFF";
+  n.textContent=autoEnabled
+    ?"ON：新しく届いた受付を、このPCで自動印刷します。"
+    :"OFF：受付が来たら「印刷」を押します。";
+}
+document.getElementById("autoToggle").onclick=()=>{
+  autoEnabled=!autoEnabled;
+  localStorage.setItem(AUTO_KEY,autoEnabled?"1":"0");
+  updateAutoUI();
+};
+updateAutoUI();
+
+function startWatch(){
+  if(unsub)unsub();
+  snapshotInitialized=false;
+  const q=query(collection(db,"orders"),where("shopId","==",shopId));
+  unsub=onSnapshot(q,async snap=>{
+    all=snap.docs.map(d=>({id:d.id,...d.data()}))
+      .filter(o=>o.source===SOURCE)
+      .sort((a,b)=>ts(b.createdAt)-ts(a.createdAt));
+    render();
+    await hydrateImages();
+
+    if(!snapshotInitialized){snapshotInitialized=true;cleanupExpiredPhotos(false);return}
+    if(autoEnabled){
+      for(const ch of snap.docChanges()){
+        if(ch.type!=="added" && ch.type!=="modified")continue;
+        const o={id:ch.doc.id,...ch.doc.data()};
+        if(o.source===SOURCE && (o.status||"WAIT")==="WAIT" && o.storagePath && !o.autoPrintState) enqueuePrint(o);
+      }
+    }
+  },err=>{
+    console.error(err);stats.textContent="データを取得できませんでした。";
+  });
+}
+
+function render(){
+  const list=filter==="ALL"?all:all.filter(x=>(x.status||"WAIT")===filter);
+  stats.textContent=`全 ${all.length}件 ／ 表示 ${list.length}件`;
+  if(!list.length){grid.innerHTML='<div class="empty">該当する受付はありません。</div>';updateLabelCount();return}
+
+  grid.innerHTML=list.map(o=>{
+    const st=o.status||"WAIT";
+    const printed=st==="READY"||st==="DONE";
+    const delivered=st==="DONE";
+    const deleted=!!o.photoDeletedAt;
+    const psize=o.paperSize||"A4";
+    const landscape=o.orientation==="landscape";
+    const pLabel=`${psize}${landscape?"横":"縦"}`;
+    const survey=o.surveyAnswer?`<br><b>アンケート：</b>${esc(o.surveyAnswer)}`:"";
+    const note=o.freeNote?`<div class="note"><b>自由記述：</b>${esc(o.freeNote)}</div>`:"";
+    const consent=o.noticeConsent?"お知らせ利用：同意あり":"お知らせ利用：同意なし";
+    const expiry=o.photoDeleteAfter?`<br>写真削除予定：${fmt(o.photoDeleteAfter)}`:"";
+    return `<article class="card" data-id="${o.id}">
+      <div class="body" style="padding-bottom:0">
+        <label class="select-wrap">
+          <input type="checkbox" class="label-select" data-id="${o.id}" ${selectedLabels.has(o.id)?"checked":""}>
+          <span>お届け用ラベルに入れる</span>
+        </label>
+      </div>
+      <div class="thumb" id="thumb-${o.id}">${deleted?"写真削除済み":"画像を読み込み中…"}</div>
+      <div class="body">
+        <div class="top"><div class="num">${esc(o.shortId||o.id)}</div><span class="badge ${st}">${st}</span></div>
+        <div class="meta">${fmt(o.createdAt)}<br>${pLabel} ／ ${o.layoutLabel||""} ／ ${o.copies||1}枚 ／ ${money(o.totalPrice)}${expiry}</div>
+        <div class="personal">
+          <b>お名前：</b>${esc(o.customerName)}<br>
+          <b>住所：</b>${esc(o.address)}<br>
+          <b>電話：</b>${esc(o.phone)}<br>
+          <b>${consent}</b>${survey}
+        </div>
+        ${note}
+        <div class="actions">
+          <button class="print" data-action="print" ${deleted||!o.storagePath?"disabled":""}>${deleted?"写真削除済み":"印刷"}</button>
+          <button class="png" data-action="open" ${deleted||!o.storagePath?"disabled":""}>画像を開く</button>
+          <div class="state-toggles">
+            <button class="state-toggle ${printed?"on":""}" data-action="toggle-print">${printed?"印刷済":"印刷未"}</button>
+            <button class="state-toggle ${delivered?"delivered":""}" data-action="toggle-delivery" ${!printed&&!delivered?"disabled":""}>${delivered?"受渡済":"受渡未"}</button>
+          </div>
+        </div>
+      </div>
+    </article>`;
+  }).join("");
+  updateLabelCount();
+}
+
+async function imageUrlFor(o){
+  if(!o.storagePath || o.photoDeletedAt)return "";
+  if(o._url)return o._url;
+  o._url=await getDownloadURL(ref(storage,o.storagePath));
+  return o._url;
+}
+async function hydrateImages(){
+  for(const o of all){
+    const el=document.getElementById(`thumb-${o.id}`);
+    if(!el || o.photoDeletedAt || !o.storagePath)continue;
+    try{
+      const url=await imageUrlFor(o);
+      el.innerHTML=`<img src="${url}" alt="${esc(o.shortId||"")}">`;
+    }catch(e){
+      console.error(e);el.textContent="画像を取得できません";
+    }
+  }
+}
+
+function printWindow(url,o){
+  const paper=(o.paperSize||"A4").toUpperCase();
+  const isLandscape=o.orientation==="landscape";
+  const pageSize=`${paper} ${isLandscape?"landscape":"portrait"}`;
+  const dims=paper==="A3"
+    ? (isLandscape?["420mm","297mm"]:["297mm","420mm"])
+    : (isLandscape?["297mm","210mm"]:["210mm","297mm"]);
+  const count=Math.max(1,Math.min(10,Number(o.copies)||1));
+  const w=window.open("","_blank");
+  if(!w){alert("ポップアップがブロックされました。");return}
+  const pages=Array.from({length:count},()=>`<section><img src="${url}"></section>`).join("");
+  w.document.write(`<!doctype html><html><head><title>印刷</title><style>
+    @page{size:${pageSize};margin:0}
+    html,body{margin:0;padding:0}
+    section{width:${dims[0]};height:${dims[1]};page-break-after:always}
+    section:last-child{page-break-after:auto}
+    img{width:100%;height:100%;object-fit:fill;display:block}
+  </style></head><body>${pages}<script>
+    Promise.all([...document.images].map(i=>i.complete?Promise.resolve():new Promise(r=>i.onload=r)))
+      .then(()=>setTimeout(()=>window.print(),250));
+  <\/script></body></html>`);
+  w.document.close();
+}
+
+grid.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-action]");if(!b)return;
+  const card=e.target.closest(".card"),id=card?.dataset.id;
+  const o=all.find(x=>x.id===id);if(!o)return;
+
+  try{
+    if(b.dataset.action==="print"){
+      const url=await imageUrlFor(o);printWindow(url,o);return;
+    }
+    if(b.dataset.action==="open"){
+      const url=await imageUrlFor(o);window.open(url,"_blank","noopener");return;
+    }
+    if(b.dataset.action==="toggle-print"){
+      const st=o.status||"WAIT";
+      const next=(st==="READY"||st==="DONE")?"WAIT":"READY";
+      const patch={status:next,updatedAt:serverTimestamp()};
+      if(next==="WAIT"){
+        patch.deliveredAt=deleteField();patch.photoDeleteAfter=deleteField();
+      }
+      await updateDoc(doc(db,"orders",id),patch);return;
+    }
+    if(b.dataset.action==="toggle-delivery"){
+      const st=o.status||"WAIT";
+      if(st==="READY"){
+        const deleteAfter=Timestamp.fromDate(new Date(Date.now()+30*DAY));
+        await updateDoc(doc(db,"orders",id),{
+          status:"DONE",
+          deliveredAt:serverTimestamp(),
+          photoDeleteAfter:deleteAfter,
+          updatedAt:serverTimestamp()
+        });
+      }else if(st==="DONE"){
+        await updateDoc(doc(db,"orders",id),{
+          status:"READY",
+          deliveredAt:deleteField(),
+          photoDeleteAfter:deleteField(),
+          updatedAt:serverTimestamp()
+        });
+      }
+    }
+  }catch(err){console.error(err);alert("更新できませんでした。")}
+});
+
+document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("[data-filter]").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");filter=b.dataset.filter;render();hydrateImages();
+});
+
+async function cleanupExpiredPhotos(showResult=true){
+  let deleted=0,failed=0;
+  const now=Date.now();
+  for(const o of all){
+    if(o.photoDeletedAt || !o.storagePath || !o.photoDeleteAfter)continue;
+    if(ts(o.photoDeleteAfter)>now)continue;
+    try{
+      await deleteObject(ref(storage,o.storagePath));
+      await updateDoc(doc(db,"orders",o.id),{
+        photoDeletedAt:serverTimestamp(),
+        storagePath:deleteField(),
+        updatedAt:serverTimestamp()
+      });
+      deleted++;
+    }catch(e){console.error(e);failed++}
+  }
+  if(showResult) alert(`削除完了：${deleted}件${failed?` ／ 失敗：${failed}件`:""}`);
+}
+document.getElementById("cleanupBtn").onclick=()=>cleanupExpiredPhotos(true);
+
+
+function silentPrintImage(url,o){
+  return new Promise((resolve,reject)=>{
+    const paper=(o.paperSize||"A4").toUpperCase();
+    const isLandscape=o.orientation==="landscape";
+    const pageSize=`${paper} ${isLandscape?"landscape":"portrait"}`;
+    const dims=paper==="A3"
+      ? (isLandscape?["420mm","297mm"]:["297mm","420mm"])
+      : (isLandscape?["297mm","210mm"]:["210mm","297mm"]);
+    const count=Math.max(1,Math.min(10,Number(o.copies)||1));
+
+    const iframe=document.createElement("iframe");
+    iframe.setAttribute("aria-hidden","true");
+    iframe.style.cssText="position:fixed;right:-10000px;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none";
+    document.body.appendChild(iframe);
+
+    const pages=Array.from({length:count},()=>`<section><img src="${url}"></section>`).join("");
+    const html=`<!doctype html><html><head><meta charset="utf-8"><title>自動印刷</title><style>
+      @page{size:${pageSize};margin:0}
+      html,body{margin:0;padding:0}
+      section{width:${dims[0]};height:${dims[1]};page-break-after:always}
+      section:last-child{page-break-after:auto}
+      img{width:100%;height:100%;object-fit:fill;display:block}
+    </style></head><body>${pages}</body></html>`;
+
+    let done=false;
+    const finish=(ok,err)=>{
+      if(done)return;done=true;
+      setTimeout(()=>iframe.remove(),400);
+      ok?resolve():reject(err||new Error("auto-print-failed"));
+    };
+
+    iframe.onload=()=>{
+      try{
+        const idoc=iframe.contentDocument;
+        const imgs=[...idoc.images];
+        Promise.all(imgs.map(i=>i.complete?Promise.resolve():new Promise((res,rej)=>{
+          i.addEventListener("load",res,{once:true});
+          i.addEventListener("error",()=>rej(new Error("print-image-load-failed")),{once:true});
+        }))).then(()=>{
+          const iw=iframe.contentWindow;
+          const fallback=setTimeout(()=>finish(true),4500);
+          iw.addEventListener("afterprint",()=>{clearTimeout(fallback);finish(true)},{once:true});
+          iw.focus();
+          setTimeout(()=>iw.print(),250);
+        }).catch(e=>finish(false,e));
+      }catch(e){finish(false,e)}
+    };
+    iframe.srcdoc=html;
+  });
+}
+
+
+function visibleOrders(){
+  return filter==="ALL" ? all : all.filter(x=>(x.status||"WAIT")===filter);
+}
+function updateLabelCount(){
+  const el=document.getElementById("labelCount");
+  if(el) el.textContent=selectedLabels.size;
+}
+
+grid.addEventListener("change",e=>{
+  const cb=e.target.closest(".label-select");
+  if(!cb)return;
+  const id=cb.dataset.id;
+  if(cb.checked){
+    if(selectedLabels.size>=12){
+      cb.checked=false;
+      alert("1シートは12件までです。");
+      return;
+    }
+    selectedLabels.add(id);
+  }else{
+    selectedLabels.delete(id);
+  }
+  updateLabelCount();
+});
+
+document.getElementById("selectFirst12Btn").onclick=()=>{
+  selectedLabels.clear();
+  for(const o of visibleOrders().slice(0,12)) selectedLabels.add(o.id);
+  render();
+  hydrateImages();
+};
+
+document.getElementById("clearLabelsBtn").onclick=()=>{
+  selectedLabels.clear();
+  render();
+  hydrateImages();
+};
+
+function labelText(s,max=120){
+  const v=String(s??"").replace(/\s+/g," ").trim();
+  return v.length>max ? v.slice(0,max-1)+"…" : v;
+}
+function makeLabelHtml(o){
+  const spec=[
+    o.paperSize||"A4",
+    o.layoutLabel||"",
+    `${o.copies||1}枚`
+  ].filter(Boolean).join(" / ");
+
+  return `<div class="label">
+    <div class="label-top">
+      <div class="name">${esc(labelText(o.customerName,40))} 様</div>
+      <div class="receipt">${esc(o.shortId||"")}</div>
+    </div>
+    <div class="address">${esc(labelText(o.address,110))}</div>
+    <div class="phone"><b>TEL：</b>${esc(labelText(o.phone,35))}</div>
+    <div class="spec">${esc(spec)}</div>
+    <div class="note"><b>自由記述：</b>${esc(labelText(o.freeNote||"—",80))}</div>
+    <div class="survey"><b>アンケート：</b>${esc(labelText(o.surveyAnswer||"—",55))}</div>
+  </div>`;
+}
+function printLabelSheet(orders){
+  if(!orders.length){alert("ラベルにする注文を選択してください。");return}
+  if(orders.length>12){alert("1シートは12件までです。");return}
+
+  const labels=orders.map(makeLabelHtml).join("");
+  const blanks=Array.from({length:12-orders.length},()=>'<div class="label blank"></div>').join("");
+  const w=window.open("","_blank");
+  if(!w){alert("ポップアップがブロックされました。");return}
+
+  w.document.write(`<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>お届け用ラベル</title><style>
+    @page{size:A4 portrait;margin:0}
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;width:210mm;height:297mm;font-family:"Yu Gothic","Hiragino Kaku Gothic ProN",sans-serif}
+    .sheet{
+      width:172.8mm;height:253.8mm;
+      margin:21.6mm auto;
+      display:grid;
+      grid-template-columns:86.4mm 86.4mm;
+      grid-template-rows:repeat(6,42.3mm);
+      gap:0;
+    }
+    .label{
+      width:86.4mm;height:42.3mm;
+      padding:2.1mm 2.4mm 1.7mm;
+      overflow:hidden;color:#111;
+      font-size:7.8pt;line-height:1.22;
+    }
+    .label-top{display:flex;justify-content:space-between;align-items:flex-start;gap:2mm}
+    .name{font-size:10.2pt;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64mm}
+    .receipt{font-size:7pt;font-weight:800;white-space:nowrap}
+    .address{font-size:8.3pt;font-weight:600;min-height:9.6mm;max-height:9.6mm;overflow:hidden;margin-top:.7mm}
+    .phone{font-size:7.7pt;margin-top:.2mm}
+    .spec{margin-top:.4mm;border-top:.25mm solid #bbb;padding-top:.5mm;font-size:7.1pt;font-weight:700}
+    .note,.survey{font-size:6.8pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.3mm}
+    .blank{visibility:hidden}
+  </style></head><body>
+    <div class="sheet">${labels}${blanks}</div>
+    <script>window.onload=()=>setTimeout(()=>window.print(),250);<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+document.getElementById("printLabelsBtn").onclick=()=>{
+  const orders=[...selectedLabels].map(id=>all.find(o=>o.id===id)).filter(Boolean);
+  printLabelSheet(orders);
+};
+
+function enqueuePrint(o){
+  if(queued.has(o.id))return;
+  queued.add(o.id);printQueue.push(o);processPrintQueue();
+}
+async function claimPrint(id){
+  const r=doc(db,"orders",id);
+  return runTransaction(db,async tx=>{
+    const s=await tx.get(r);if(!s.exists())return null;
+    const d=s.data();
+    if((d.status||"WAIT")!=="WAIT" || d.autoPrintState || !d.storagePath)return null;
+    tx.update(r,{autoPrintState:"PRINTING",autoPrintStartedAt:serverTimestamp(),updatedAt:serverTimestamp()});
+    return {id,...d};
+  });
+}
+async function processPrintQueue(){
+  if(printBusy||!autoEnabled)return;
+  const next=printQueue.shift();if(!next)return;
+  printBusy=true;
+  try{
+    const o=await claimPrint(next.id);
+    if(o){
+      const url=await imageUrlFor(o);
+      await silentPrintImage(url,o);
+      await updateDoc(doc(db,"orders",o.id),{
+        status:"READY",autoPrintState:"PRINTED",autoPrintCompletedAt:serverTimestamp(),updatedAt:serverTimestamp()
+      });
+    }
+  }catch(e){
+    console.error(e);
+    try{await updateDoc(doc(db,"orders",next.id),{autoPrintState:"ERROR",updatedAt:serverTimestamp()})}catch(_){}
+  }finally{
+    queued.delete(next.id);printBusy=false;
+    if(printQueue.length&&autoEnabled)setTimeout(processPrintQueue,400);
+  }
+}
+</script>
+</body></html>

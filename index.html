@@ -1,0 +1,1316 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2027 フォトカレンダー</title>
+<style>
+  :root{
+    --bg:#f7f9fb;
+    --card:#ffffff;
+    --text:#30343a;
+    --muted:#7c858f;
+    --line:#e4e9ee;
+    --blue:#4f8fc7;
+    --blue-soft:#eef6fc;
+    --red:#e34f4f;
+    --green:#39765a;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Yu Gothic UI",sans-serif;
+    color:var(--text);
+    background:var(--bg);
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 18px 48px}
+
+
+  .hero{
+    background:#fff;
+    border-bottom:1px solid var(--line);
+    margin:0 -18px 24px;
+    padding:42px 28px 38px;
+    text-align:center;
+  }
+  .hero h1{
+    margin:0;
+    font-family:Georgia,"Times New Roman","Yu Mincho",serif;
+    font-weight:400;
+    font-size:clamp(32px,5vw,52px);
+    letter-spacing:.04em;
+    color:#33383d;
+  }
+  .hero .lead{
+    max-width:640px;
+    margin:14px auto 0;
+    color:#737c84;
+    font-size:14px;
+    line-height:1.9;
+  }
+  .hero .promise{
+    margin-top:18px;
+    display:flex;justify-content:center;flex-wrap:wrap;gap:18px;
+    color:#7a838c;
+    font-size:11px;
+  }
+  .hero .promise span{
+    padding:0;
+    background:none;
+    border:none;
+  }
+
+  .journey{display:none}
+
+  .grid{
+    display:grid;
+    grid-template-columns:350px minmax(0,1fr);
+    gap:22px;
+  }
+  .panel,.preview{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:10px;
+    box-shadow:none;
+  }
+  .panel{padding:20px}
+  .preview{padding:20px}
+  .section-title{
+    margin:20px 0 8px;
+    font-size:12px;
+    font-weight:800;
+    color:#56616b;
+    letter-spacing:.08em;
+  }
+  .section-title:before{display:none}
+  .controls{display:grid;gap:10px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .control{display:grid;gap:6px}
+  label{font-size:12px;font-weight:700;color:#5d6670}
+  select,input[type="file"]{
+    width:100%;
+    border:1px solid #dce3e9;
+    background:#fff;
+    border-radius:7px;
+    padding:11px 12px;
+    font-size:14px;
+    color:#333940;
+  }
+  input[type="range"]{width:100%;accent-color:var(--blue)}
+  button{
+    width:100%;
+    border:1px solid #dce3e9;
+    border-radius:7px;
+    padding:12px 13px;
+    background:#fff;
+    color:#3f4850;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .primary{
+    background:var(--blue);
+    color:#fff;
+    border-color:var(--blue);
+    box-shadow:none;
+  }
+  .ghost{background:#fff;color:#4f5962}
+  .good{
+    background:var(--blue-soft);
+    color:#386f9f;
+    border-color:#d8e8f4;
+  }
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+
+  .correction-panel{
+    padding:12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:#fbfcfd;
+  }
+  .correction-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .correction-actions button{font-size:12px;padding:10px 8px}
+  .adjust-grid{display:grid;gap:8px}
+  .adjust-row{display:grid;grid-template-columns:72px 1fr 46px;gap:8px;align-items:center}
+  .adjust-row label{font-size:11px}
+  .adjust-value{text-align:right;font-size:11px;font-weight:700;color:#737d86}
+  .correction-note{
+    display:none;margin-top:9px;padding:8px 9px;border-radius:6px;
+    background:#eef7f1;color:#35694e;font-size:11px;line-height:1.5
+  }
+  .correction-note.show{display:block}
+
+  .preview-head{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    flex-wrap:wrap;margin-bottom:12px;
+  }
+  .preview-head .title-wrap{display:grid;gap:3px}
+  .preview-title{font-size:17px;font-weight:700;color:#40474e}
+  .preview-title:before{display:none}
+  .small{font-size:11px;color:#8b949c}
+  .chip{
+    padding:6px 9px;
+    border-radius:999px;
+    border:1px solid #dce7ef;
+    background:#f7fbfe;
+    color:#5f7d96;
+    font-size:11px;
+    font-weight:700;
+  }
+  .canvas-box{
+    min-height:500px;
+    display:flex;align-items:center;justify-content:center;
+    background:#f3f5f7;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px;
+  }
+  canvas{
+    max-width:100%;
+    max-height:78vh;
+    background:#fff;
+    border-radius:2px;
+    box-shadow:0 5px 18px rgba(30,45,55,.08);
+  }
+  .note{
+    margin-top:12px;
+    padding:11px 12px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    background:#fafbfc;
+    color:#737c84;
+    font-size:11px;
+    line-height:1.65;
+  }
+
+  @media(max-width:900px){
+    .grid{grid-template-columns:1fr}
+    .canvas-box{min-height:360px}
+  }
+  @media(max-width:640px){
+    .wrap{padding:0 10px 36px}
+    .hero{margin:0 -10px 16px;padding:30px 18px}
+    .panel,.preview{padding:15px}
+    .row2,.correction-actions{grid-template-columns:1fr}
+  }
+
+  .shop-strip{
+    margin:0 0 12px;padding:10px 12px;border-radius:8px;
+    background:#f7fbfe;border:1px solid #dce7ef;color:#516f88;
+    font-size:12px;font-weight:700;text-align:center
+  }
+  .order-card{
+    margin-top:22px;background:#fff;border:1px solid var(--line);
+    border-radius:10px;padding:22px
+  }
+  .order-card h2{margin:0 0 5px;font-size:21px;color:#353b40}
+  .order-lead{margin:0 0 18px;color:#78818a;font-size:13px;line-height:1.7}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-field{display:grid;gap:6px}
+  .form-field.full{grid-column:1/-1}
+  .form-field input,.form-field textarea,.form-field select{
+    width:100%;padding:12px;border:1px solid #dce3e9;border-radius:7px;
+    background:#fff;color:#333940;font:inherit
+  }
+  .form-field textarea{min-height:92px;resize:vertical}
+  .required{color:#d84e4e;font-size:10px;margin-left:4px}
+  .price-box{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:12px 14px;border-radius:8px;background:#f7f9fb;border:1px solid var(--line);
+    font-size:13px
+  }
+  .price-box strong{font-size:20px}
+  .survey-box{padding:13px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd}
+  .survey-q{font-size:13px;font-weight:800;margin-bottom:8px}
+  .survey-options{display:grid;gap:7px}
+  .survey-options label{display:flex;align-items:center;gap:8px;font-weight:500}
+  .privacy-box{
+    margin-top:14px;padding:14px;border:1px solid #e3e7ea;border-radius:8px;
+    background:#fafbfc;color:#66717a;font-size:11px;line-height:1.75
+  }
+  .consent-row{display:flex;gap:9px;align-items:flex-start;margin-top:10px;font-size:12px;color:#505b64}
+  .consent-row input{margin-top:3px;transform:scale(1.15)}
+  .submit-order{margin-top:16px;background:#4f8fc7;color:white;border-color:#4f8fc7}
+  .order-status{display:none;margin-top:14px;padding:14px;border-radius:8px;line-height:1.65;font-size:13px}
+  .order-status.sending{display:block;background:#fff8e9;color:#765716;border:1px solid #f0dfb8}
+  .order-status.success{display:block;background:#eef8f2;color:#286243;border:1px solid #cfe6d8}
+  .order-status.error{display:block;background:#fff1ef;color:#9c3028;border:1px solid #efcac5}
+  .receipt-no{display:block;font-size:28px;font-weight:900;letter-spacing:.08em;margin:4px 0}
+  @media(max-width:640px){
+    .form-grid{grid-template-columns:1fr}
+    .form-field.full{grid-column:auto}
+    .order-card{padding:16px}
+  }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+    <div class="shop-strip"><span id="shopNameBadge">受付営業所を読み込み中…</span></div>
+    <div class="hero">
+    <h1>2027年 カレンダー</h1>
+    <p class="lead">お気に入りの写真を1枚選んで、来年のカレンダーに。<br>A4・A3、縦写真・横写真から選べます。</p>
+    <div class="promise">
+      <span>2027年 1月はじまり</span>
+      <span>・祝日対応</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="section-title">基本設定</div>
+      <div class="controls">
+        <div class="row2">
+          <div class="control">
+            <label for="paperSize">用紙サイズ</label>
+            <select id="paperSize">
+              <option value="A4">A4</option>
+              <option value="A3">A3</option>
+            </select>
+          </div>
+          <div class="control">
+            <label for="layoutType">レイアウト</label>
+            <select id="layoutType">
+              <option value="portraitPhoto">縦写真向け</option>
+              <option value="landscapePhoto">横写真向け</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="photoInput">写真を選ぶ</label>
+          <input id="photoInput" type="file" accept="image/*">
+        </div>
+
+        <div class="section-title">写真の調整</div>
+
+        <div class="control">
+          <label for="zoom">大きさ</label>
+          <input id="zoom" type="range" min="60" max="220" step="1" value="100">
+        </div>
+        <div class="control">
+          <label for="offsetX">左右</label>
+          <input id="offsetX" type="range" min="-100" max="100" step="1" value="0">
+        </div>
+        <div class="control">
+          <label for="offsetY">上下</label>
+          <input id="offsetY" type="range" min="-100" max="100" step="1" value="0">
+        </div>
+        <div class="row2">
+          <button class="ghost" id="rotateLeft" type="button">↶ 左へ90°</button>
+          <button class="ghost" id="rotateRight" type="button">↷ 右へ90°</button>
+        </div>
+        <button class="good" id="fitBtn" type="button">ぴったりに戻す</button>
+
+        <div class="section-title">写真補正</div>
+        <div class="correction-panel">
+          <div class="correction-actions">
+            <button class="primary" id="autoCorrectBtn" type="button">☀ おまかせ補正</button>
+            <button class="ghost" id="resetCorrectionBtn" type="button">↶ 補正をもとに戻す</button>
+          </div>
+
+          <div class="adjust-grid">
+            <div class="adjust-row">
+              <label for="brightnessRange">明るさ</label>
+              <input id="brightnessRange" type="range" min="50" max="170" step="1" value="100">
+              <div class="adjust-value" id="brightnessValue">100%</div>
+            </div>
+            <div class="adjust-row">
+              <label for="contrastRange">くっきり</label>
+              <input id="contrastRange" type="range" min="50" max="190" step="1" value="100">
+              <div class="adjust-value" id="contrastValue">100%</div>
+            </div>
+            <div class="adjust-row">
+              <label for="saturationRange">色あざやか</label>
+              <input id="saturationRange" type="range" min="30" max="220" step="1" value="100">
+              <div class="adjust-value" id="saturationValue">100%</div>
+            </div>
+          </div>
+          <div class="correction-note" id="correctionNote"></div>
+        </div>
+
+        <div class="section-title">申し込み</div>
+        <div class="btns">
+          <button class="primary" id="goOrderBtn" type="button">この内容で申し込む</button>
+          <button class="ghost" id="redrawBtn" type="button">再描画</button>
+        </div>
+
+        <div class="note">
+          縦写真は用紙横向き・左側に大きく配置。横写真は用紙縦向き・上側に大きく配置します。
+        </div>
+      </div>
+    </div>
+
+    <div class="preview">
+      <div class="preview-head">
+        <div class="title-wrap">
+          <div class="preview-title">プレビュー</div>
+          <div class="small" id="sizeLabel">A4 / 縦写真向け</div>
+        </div>
+        <div class="chip" id="infoChip">2027年 1月〜12月</div>
+      </div>
+      <div class="canvas-box">
+        <canvas id="canvas" width="3508" height="2480"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <section class="order-card" id="orderSection">
+    <h2>お申し込み情報</h2>
+    <p class="order-lead">後日、営業所からお届けします。お届けに必要な情報をご入力ください。</p>
+
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="customerName">お名前<span class="required">必須</span></label>
+        <input id="customerName" autocomplete="name" maxlength="60" placeholder="例：中国 花子">
+      </div>
+      <div class="form-field">
+        <label for="phone">連絡先電話番号<span class="required">必須</span></label>
+        <input id="phone" type="tel" autocomplete="tel" maxlength="30" placeholder="例：090-1234-5678">
+      </div>
+
+      <div class="form-field full">
+        <label for="address">ご住所<span class="required">必須</span></label>
+        <textarea id="address" autocomplete="street-address" maxlength="220" placeholder="郵便番号からご入力ください"></textarea>
+      </div>
+
+      <div class="form-field">
+        <label for="copies">申込枚数</label>
+        <select id="copies">
+          <option value="1">1枚</option><option value="2">2枚</option><option value="3">3枚</option>
+          <option value="4">4枚</option><option value="5">5枚</option>
+          <option value="6">6枚</option><option value="7">7枚</option><option value="8">8枚</option>
+          <option value="9">9枚</option><option value="10">10枚</option>
+        </select>
+      </div>
+
+      <div class="form-field">
+        <label>お申し込み内容</label>
+        <div class="price-box">
+          <span id="orderSummary">A4・1枚</span>
+          <strong id="totalPrice">料金設定中</strong>
+        </div>
+      </div>
+
+      <div class="form-field full">
+        <label for="freeNote">自由記述欄</label>
+        <textarea id="freeNote" maxlength="500" placeholder="お届けに関すること、ご要望などがあればご記入ください"></textarea>
+      </div>
+
+      <div class="form-field full">
+        <div class="survey-box">
+          <div class="survey-q" id="surveyQuestion">アンケート</div>
+          <div class="survey-options" id="surveyOptions"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="privacy-box">
+      <strong>個人情報・写真データのお取り扱いについて</strong><br>
+      お名前・ご住所・電話番号などの個人情報は、この企画のカレンダーのお届け、お問い合わせ対応のために利用し、適切に管理します。
+      営業所からのお知らせ等への利用は、下の任意同意をいただいた場合に限ります。<br>
+      写真データは、営業所で「受渡済」と登録した日から30日後に削除します。
+    </div>
+
+    <label class="consent-row">
+      <input type="checkbox" id="privacyConsent">
+      <span>上記の個人情報・写真データの取り扱いに同意して申し込みます。<span class="required">必須</span></span>
+    </label>
+
+    <label class="consent-row">
+      <input type="checkbox" id="noticeConsent">
+      <span>この営業所からのお知らせ・ご案内に個人情報を利用することに同意します。<b>（任意）</b></span>
+    </label>
+
+    <button class="submit-order" id="submitOrderBtn" type="button">この内容で申し込む</button>
+    <div class="order-status" id="orderStatus"></div>
+  </section>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, getDoc, setDoc, updateDoc,
+  runTransaction, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+
+const firebaseConfig={
+  apiKey:"AIzaSyBKSYZgaSVTu-HO_lS1Tp2eFjSjMuOONNI",
+  authDomain:"my-uchiwa-queue.firebaseapp.com",
+  projectId:"my-uchiwa-queue",
+  storageBucket:"my-uchiwa-queue.firebasestorage.app",
+  messagingSenderId:"245883628081",
+  appId:"1:245883628081:web:ab7f00f01ba256ebca8310",
+  measurementId:"G-W4S3EKL9TY"
+};
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+const storage=getStorage(app);
+const auth=getAuth(app);
+
+const SOURCE="annual-photo-calendar-2027";
+const params=new URLSearchParams(location.search);
+const shopId=(params.get("shop")||"main").replace(/[^a-zA-Z0-9_-]/g,"")||"main";
+const defaultSettings={
+  shopName:"カレンダー受付営業所",
+  shopCode:"C",
+  a4Price:0,
+  a3Price:0,
+  surveyQuestion:"このカレンダー企画をどこで知りましたか？",
+  surveyOptions:["新聞折込","営業所からの案内","家族・知人","その他"]
+};
+let shopSettings={...defaultSettings};
+
+const YEAR = 2027;
+
+// 2027年 日本の国民の祝日・休日（内閣府公表）
+const JAPAN_HOLIDAYS_2027 = new Set([
+  '2027-01-01','2027-01-11',
+  '2027-02-11','2027-02-23',
+  '2027-03-21','2027-03-22',
+  '2027-04-29',
+  '2027-05-03','2027-05-04','2027-05-05',
+  '2027-07-19',
+  '2027-08-11',
+  '2027-09-20','2027-09-23',
+  '2027-10-11',
+  '2027-11-03','2027-11-23'
+]);
+
+function isJapanHoliday(year, month, day){
+  const mm=String(month).padStart(2,'0');
+  const dd=String(day).padStart(2,'0');
+  return JAPAN_HOLIDAYS_2027.has(`${year}-${mm}-${dd}`);
+}
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const photoInput = document.getElementById('photoInput');
+const paperSize = document.getElementById('paperSize');
+const layoutType = document.getElementById('layoutType');
+const zoom = document.getElementById('zoom');
+const offsetX = document.getElementById('offsetX');
+const offsetY = document.getElementById('offsetY');
+const sizeLabel = document.getElementById('sizeLabel');
+const infoChip = document.getElementById('infoChip');
+
+const brightnessRange = document.getElementById('brightnessRange');
+const contrastRange = document.getElementById('contrastRange');
+const saturationRange = document.getElementById('saturationRange');
+const brightnessValue = document.getElementById('brightnessValue');
+const contrastValue = document.getElementById('contrastValue');
+const saturationValue = document.getElementById('saturationValue');
+const correctionNote = document.getElementById('correctionNote');
+
+const customerName=document.getElementById('customerName');
+const addressInput=document.getElementById('address');
+const phone=document.getElementById('phone');
+const copies=document.getElementById('copies');
+const freeNote=document.getElementById('freeNote');
+const privacyConsent=document.getElementById('privacyConsent');
+const noticeConsent=document.getElementById('noticeConsent');
+const surveyQuestionEl=document.getElementById('surveyQuestion');
+const surveyOptionsEl=document.getElementById('surveyOptions');
+const orderSummary=document.getElementById('orderSummary');
+const totalPrice=document.getElementById('totalPrice');
+const orderStatus=document.getElementById('orderStatus');
+const submitOrderBtn=document.getElementById('submitOrderBtn');
+
+let newspaperLogo = new Image();
+newspaperLogo.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAU8AAABBCAYAAABRsCY2AAAACXBIWXMAAC4jAAAuIwF4pT92AAAchElEQVR4nO1dy5XbuLbd/Zbnqh5qRHYEpY6g6ImmVr8ETEdgOYJmJXAtR2BWBC1NNWkqgqeKoMmRhleKwG+AcwSQxJefUpWbe61aKokgAILAwfnjlx8/fuBWiPanGMAdfT1Xy3l5s85MmDBhQgDe3bj9FEBC/xcAshv1Y8KECROC8D83bj++cfsTJkyY0AmviXgubtWJCRMmTAjFayKed6ZCEyZMmPDacDPiGe1PdwAi5aeJ85wwYcKbwS05z6TxfUbW9wkTJkx49QgmntH+lET70xBc4srztyBE+1NMXO2ECRMmjIYg4hntTwmEO1HRh4ASh/lRc2ndtU6q9w7C5WkzEdAJEyaMCW/iScTybwBbACX6EdCNqZlof+pEQBXCeYboXzkR0AkTJowFb+JZLedHAF8AfIUgoIAgoElIg9H+lAL4YCmShRJlKl9CWO+3AP4EkFfL+TmkngkTJkzwRZDYXi3nGwAHCPE6AzAD8He0P2U+90f70wbAd0exGQRR9tJ/Eqf6f3Tfmv4O1XLeSwUwYcKECTb8EhrbTvrKfwBUEOL3V7pUQRDUbZPjo3u2AO41VR7o80FzbVct51oiShxsBunu9AUyvHPxs8XJR/vTgrj/CRMmvAIEE08AiPanHMLg8wzgiLbxp4IUoyMAv0EQXB2+ULnPmmtPEHrMtPF7k9A+QfiJ3gN4rJbzzP4Ebwe0SWwgOGsAuABIJkL6+kGS1gJijZwhVEllo0wM4bYXG6o50/3lz8YQvHV0JZ4xJDF8gnjxOs6R8QnCDUmn6zxARBfpuNI/IAhHpLnG2EFMsI8QhCX+WXSdyibVxJshoGS0u3srC1/xKMmr5TzvUc8CQp2k4pnqXih/trndxAWCkPbqmwlE7GNqowBwfA1rKdqf4tc4fzoRTwCI9qcCkmA+QhBHHQEExKTx0XequFCdf1vKPEO8ZOZav/0Muk7anDawG9YuAFbVcl68RJ98QcRyAcFNJRBzREvslbILiA2UPxm2DbkJJiw6nJVrzMXp+pKhLgF96kqkSBf/1VmwGw7Vcp4MXWm0Px3RXsMVxBoroFHJOeq7g5AaWfV2DF2fZE/5E1JN6G0IpnewAlB0kUap/xuIOblprrU+xDODeCjGN4iBmunKA/gd7Z3Yhif61HFegFgsm0Yffn8L3FgTCrdj4sBt2AFY33pnJvVCCjvB+wZBvBL6C+G6xsAzBGEFzP1+hlBBbX0IqYEID4kDxKY5OEfYYIh0uEDYLjLbfKMxYONtkx48QoznCnLDbJbhjdC0Hr5RH7RjQMxH3niWA8S75s1Z95ysbiyobNbo2xPEWjsD/YhngjpXeIEYrNTQMRd32sR7mLlObqvGyVbL+S+edb8qeHKaNozCifjCY9H9LPhCHidGaJiKIfEMwcGPIkobOE8dbIbcBQSBHXtjbI0FraMMZoZrCFwgCGg+ZDLkGQQ3sYF+IaWoW+dtqGBPFLKA2Fl+CtAuvor2py26EdDO0V59QcTi30A4AbFhW4knJCdrQgXBVbkkpBh1I9IZQDoi4Uzgz9ho5yjVsYVZ+hwS95A0BeTamL9A2zMA36P9adWHeMaa3z7CTPUjuCcWYwt7qGaB24t8YyCFeLZQ0b0cuiMBeAkd8wFSjEtwu3fvbLdazjfEfTXXwROE3mwUtRJH03UhrnRvHniPznUuwcsQTh2yF277Qx/i2YXbSSD1TAUojFK5FtNnCftE1V57676Q1XJ+pt27gD8BfUY7Q9VLokB3dQPrmNiVhz8Bi2uOg8N5htAJlh7lCtj19N5QwoMBwQ2dIS3XNRelhlENkLq/EvWN0DgeSmRfAqkO+wI3Z6xDgfANqXSWsIPfPf8VyjUm5rb3ckGd4PuulwrtjUJtO4Wn2N+HeGp1HhZUEBN5A3l2kaosZnFmQ59PCNddpHgZTmg0KAS0hHtRsxX7lu4koaqGHd1TdDVyVct5Ee1PJfQL5mo8o3IpgL8aZVQd8TpAXbKzXFP1+d8hrcNHADGJlexZYFroVvVHtD+5+rd1FdDUmVv6Y8Kh55xzGnapXzajWxejmVNnTHrfFTw21D7EM4e/YpwtbBuYd7iI/ngSP0H4eWbwe7nsUvGzwIcb6u2HN4AP3RZ+LmhXjpDavSN9aQpB8LwXvkM/d9f4rhufovHdx1j3jHawBveHrcu1nzGeq5IOlYG7PesIleLhEaqvfoaZcSrgQRM8COcdDGNN+KRx0fsE9zw8e6yX2HGd8dQlPHMBSvsGeeKl6QVcIAYhRTfR7gLpVGzjQh9BLhQQA5R2aKs3iBiUPZ2rWfzz2TB6WdmpLRYN1119Rom7s03cCiJkVrWMFqjPmx3EhsxlePHzZww/0ZLn3JHu2aA9li2rucPSbHQPone+xu10fYzrM2nUFVd/VU+XMhN2cBitPOYC18MElLnxCNJFSZVImzDOeU+DFasLgPYmykTb9S6fASRBxFNj0eJ49ju0Fbbs5K6bvAel4yXEJGcd0QrtRWLy+dxBqgHUa08vSUAVzoN33fcuQqRwBvxZ0GcKfzGKfV2Bun7MhFLl/NAm0s8Qk+8IjSO5DQ53pVrILEWyjOUHGYpdtZyvHP3/1UA4U4QFfoyF6+ZkcZU6wE6UbNhB4yRuwsjjYnUXo3ldYrzN7DrWXsST/KfWME/4A8QiXkESMZ3IfYBYnAn0nCgrgc9o7+aPkBErFV1faMqpbaVjOo/TuKSaPrAfqto2E8oE3SfxS+Pq0+Yq6Iio+VQt57kSsTGmH14wquX8FwvxtHE6Gfr5dPJ8X9D3LvPiAjGnzmg7hvfB1UbRZQ1ZQov74g+Ximdkv+MrI/COxHBWbDd3V+aKXB15oL8dhO4hRpuD4hh0mx5oBkGgmaNSlfB/Ut0Ffc9hn2gPAP6J9ic2UJTNnZMtlqHiKo1ZDjOHOMPr4Ej6gn3afMLybFxqSZ+vjnBCSjULw3XbcxXoRzxbG5NlE2KRNoaQzFjH/x8A/9uzHwyWPLYDeK0cMc67XsBtGItHaJdR8j/vIAhkCbF7hVrdmvgA6TqhvkxXqGUTM7r/d9SjFTL4O9qrffoAGK2VFwQce6yIu2+BcxwKrFawwWexmQwNNuhi1ofi3FlCgKU+46ZB1vwDJHNxgYwD5z4nCNOJmtrTSgA9AisY7BWwHVhK8yW+rMIrIVV4a5hpkWmTA3BdnzbdOIeYlspviVK36z1d73sH0VE2HGwhXh7rHxP4K+oZG8i8moDczQr67kNAWenP9TGxjJTrXRbPAdKvkHEXaHFedWz7LcO5EEjf5irm8ts7Kn8tSYHhIf5zHDP3O0Y785evm1dpu1gt54nDv7ggEbZAex1lKlevxMU3sbOoTrw3fgXMteY3SixjzP1LyC0GvMRR99pyzUfkT6C30zCujMQ7iIdYUafUyciTman0HeqB9SYx4di4toXws6sgI2hWaLu4HCBE4RVkjPxfEMRX9flM6V5TqrYjJDfNqgjeDBZoW+6ZuPsiDij7M+ApwB1K5cJ0+B1SF1xAchpG1QnpFRMqm1XLeUmEeg3DHFB1lOwzqxjKFlRf4Smalq4CmgxNCWQ2obRazrfEITZtBhGAIz3jGfXk3iruSI8HKBsMtXtEmH6vc6aoAZGq75tsBzF9TejTNOdmJmaH5oRNfeHDBBQOJuC6Wb1TXgDvfCvIl8i6TBU2YvOMOnFRv0eoJ/poihpqW+q1ewii+lH5buI6SkgLfwz9QF4giPEWYgH5EoYhoXJZ3H5BnyuERb3oIiYYC4iXfYduKhlVrO0Nmmsp0La4R/tTzYFZwwE8QMT/J9VyfiQCqiPWR6XOFLRB04J4guC2NkM9kwrFfqD2Kad+JKbb4NaPP+j+J31+Cv/58vgKCCcgxqREd/VLjMamZuHaVfwT7U9PkGrKGFLqZknFe63UnORp4uaQL3yD9sPdWyo/oj5Jthhm8cXwE9XvAfzXcI2NUJueBDNHuHKe9SxbCI6htJRlMc8nfV9Qlh1a3Bn8dWTrMTYXgyX2HoILK2COwpmBTm2lMSxh57qa+rGPAD5G+9Pgpw0Q91SgPUdnaEc4DYWz4p7kYwfIR+qHDjbdJAfEdEWCtg7elxDrmC4d0+aE8QA42qFiiAXqixJ1HcwZw+gHF2joKQPv30FkmDfmAPQFLdpPAbc8QfiFpdVy7qWUJw7tyVUMgaGZxLGtIGKgXbgMzaVQVFEOe/KYj7Dv/DNIIlBqrqvENDHU8WfU/dhsE26hC8+A2sGMNjyP6banQRddrC+KEev2hjU8s2OiChXNAXyG5EQXqO+Wtmuuem0Y3GGefBYBt7j1W48J67qv7LoRUOYfwD7GPvrAJmLHdZOeMhRM+LR9JKnJZHBgrCDVVUMQ0jGJhQ5PjbnVVBc0EUf7052iFokhjcKs3gHqhjagTajGOpqjorZddObZoB8vh+6QC87YdkU5/7errAfuLfXYrnUFO9MPDiKgNuJ5GHmn71t3F+LogksUC1l0zzAvpNRRX4Yw7mQIwmcaT3bFOYKitjyDBdToMTZyzZRreaO8a2xnAEqyYrsMTKr42lJR0cb7DGHAM9k/XGPKuscjFNuDJfAEEIEyWn11JbJofYM9co3HrUB9vGKIMV4hQJ3glRiELFCuLEd8XIGKoXaoEnUdyhEkisO+U42WPJZgW+Bjo7xRu51BHO8d9DrjlhHP4DC+UxasiWCx+G8Cn6k1GMiizqLzEeTvqZt/xJDkjj62zqciDvkO3bm/GYaLvLmH3WHdxs0bzxojhiMjg+IaSvSUy82oWs7X0f50hp7w+hxXs3ZEytUQklVpA+kyclQ+eYfh3VHd2RIMQ2COqE+0mNrdgpKBQEZDJXC4vwyIMQnzm4Kv6Fst5xnlSLhv/J5qiuuIY67cc472pwr+3EIFwS3lroJdEJikxTZ3dIyIMxvRDVB2uOfZRDhV0OaQhVZOhsAskvlOgYDNpjIns27Bm3iSuJFC+kquoKfQqjHlA4RxgsupMfBHtHWeGaQf5wZi97igrkurIB2eHxq/X3d8jCOWNjG00eEtwyn6WjJGuYwdKlaoczsl/Ihn7dAwTswy5AYb1c/v0XJXSrq1zFLVPYRbTfN39cA6QDIxeccu90Hl2IRMa6O1LmkzXUM8i9bDQ9HRMpPkC66rCLingJl4xvxPaD5PH53kHepuRTFk1u4c0p0j0XQqV+5LlPKpUm4LfZgfuz98gBAL/0CH5LCB+LdFGvXFBnop5CHan9JKpk27g/R3bWKlGj4g5odLFN1pCBlv4kMaejJIQv65wY3H6OeeA7TH7gF6/edLIDNdoPdnWhuloa57iOdZkC/vWdF/pug5doqetoTliGryXND1kRHzP0MeAMdYo34k8GeIkzBj1H0Xm4OhDvYHyPR0m8a1s+ZeHWz6mN5oiAU6jJXVhdF30SdDdMIXtKBsotB3GtMY9rGbQcyLnL77SBi1eaCIZT4cbwIH16IYgHSBH2NjS4QmhBvrGt7MOHTkOluI2pns7yEMW77rPATso27z5/TWhRv9PJvwIBbXovRZKb/x5L34tgeZeV59UD4b3gdDchQ6pCPX75qAY6sMHkicGgqxR5mP8CM417pcRgRCUwzMDb8Hg4hWUyf/ksjo03e+P0GM3++or1EdniE2GHXdfoM7wUvi0xGL0WyG4QmnD0J82oM4z5CFtEb9XPUZKLoH4sX5uGgsUCeczxATxHdQE+/eBoJ0v6MtFuJkEkexuGf9qUfRDQbi3klnPoTxkKO1VLjq3UT7U6FE43DZIfTiK9xmoQMi3LL0LNvMzXokhugIMxe66Whcs23sC2CQbFBjwIfrvG5SXsRT0UE1YZq0MwjiqRqLOM1cBeGvxR3hgS4greZr1F/oMwS3EJKK7p50J0XAPU5EAVmyKX7Xej5PIykCII+OcIlVEdVfou3YfISZq2IR02fBR9H+tPLk7nw44QTdAy4YqWp1pvfhqi8CsCX3F9VNqqRPGwc6JIffR1x+RD071LfAENO0+R7JNzKH2TeyDO0kwTZmTHy6Ek7OC1EYrseQfpshY+1SRTCuc82X88zQXmzf6Pej5ho3soIw3OSQDxJBTmDVetgkmFDKrGE3Vr2H/sjQDMNzoN46EYhn/Ys4rgLiWRcQE2gIfZgaIzzWLu6rO3aKjUrEWo52f99DZlli4lhCzokDhLW84BsUXaMPdElujtSvoyWTTlf1D7/zEvJcnqxjXYAIL04t111E3rRBGDeOLowHMQO2jZnrDHExUxH7uB1RP/7xrJOPDGJ4bZhO4kk7u7ozMRe4gjkJB2MLMWEyKt+cvDaOga2ILGLanPQ3EBP0EXXL3EO0P2VDJYGghd+Fc7AlU3ntSAao48op0sRf0Vhy3YWyUEsuS/rEFMJPT0fAfTh0Izz9Jl0LaYP68TA52ue0b9D/zKaPpHrIDdddRL50XB8KsWe5DcwZ8wHzez0St5w46ncxJ5zbt0Q7WZB1LNnbw0o8GyKqepKlj/j8CTIj9FfqLIseK5gHh1PeMdHkcl9gzrajEqdv9Mn3/hntT71OtGRQpFVfS+VbQ+lZzkhkmpwCcYylbVNTLO+AjPzgBfEegiD3MmhF+1OucHOmXKSzhmtUDfR7YmkjhZlwmtRe76E/BZJ1t6XmHtuCv7xgUpDEpxA5o5eQbkrXrGewh66qkmtXGCOcCKXj/gWAwkg8G5awR+hPyDR2Du1jPVhs4tC4EjKXnqr7jKEX4b/CPKlUfIY8WiCmZ/geiQSqmUffXVijJ8fzxlB4ljMt3pqHBYlTWwid9DXih4jlCu7jYC6QeVv7voOPJJmUcOs9i9DKyVvBpB8/QKynpjqqok16rbmXbQm6hW8bsyEMY76IHdcL/oekiZZEQcakMb0XXGJ/6VNJi3hG9cPNDpA5OX31Exzwb+JOmyLsI/x3khwywsS2cHh3Ym53BZmGrFe8Oy30I+pnK/WF6m94pr/QydP0WYzRv39PARy7SUxSjTtMhFT993dHgpUmNmTosHGdrgQRKlaQah+T3ngFt6/nGso5QMRd55ZbMui5tJI+t9AT3hUaxJPassFHZ91CFHY8DWMIA5vP+mwetQJInfkC9UQqQ7ff5jxpQv4Fwbl9ghB9mQhWkMcnAPojdPmkyr8CO+s6vuHaRcgQTl0bTEBi1DPhP0FM5AzCAbdleQwBGRhy+BN9PhjsSJ9OZTxxaK4xsZ5hrdTFRir+TDzqPvim8vNx0NYQzi6oIETXGGZCd6AEEUf4eUX4GIRaBEsFPdtXSOkMsJ/ueiDuMjHVaYnbjzREzTX+ueO6CTHCdaUu3X4fLpjtLbmn0ehHl0YcBkSA5kyT8ywgdIsxxMSrIHbx3KRcJ51OCukC05koeeIB4gV8oj4eILiRWru0wBJIK/wK8kz4eOQ+AvJF+56V0wWFTyGl/Wt5j6w+TqKswMYFlvTpkhZ8kBFRSW1lgKCcqz6IIvshb7X+EBdq837IPNstoZceYtSJmo147npIWnFIYZ9N1LMvpno4bHNB61tlCvi+odRpNttGAmiO4aCwqBU8D4qiMjmJDkdLg0PiM4QL1O+mCU07M/cthpiwnyEmUy9DA2EDvW62QuOAq1DQWPpw4j5ckxbVcp7Su9aJt1UgZ55arnHoYF8VguqHZ+ICH9VxJwJaQswDU/uF4fcmEpi5Jl68CRH2zFKPmsy36/srDe3r0IeZCRXBE8d13wgeU7v/dXCEQ+II8xpcABqdJxPD0JaI8B6hn6Q7alB37Qj9oLOoq9vBLwg4vI0IaUrRJbHPPR51nhWizC97C0+RwgGjiNhAJ0MGg8TbDeoJMs4IeP8ketoI44LEINNOrh5NXcLwfpjgEHFqtvcEOlnTcF9M962U+kvQ0bueEVcJzNz4g/Lp2vTUOhJH2VjzW6V5TlM9fY9SCSWernnruy6SwHbHQAnzu5xF+9Ni6MQgKeqOzYwM5t3fNKBltZyvDHqLTkafSh4aNgioD76Ezgu0kH3rTNAzqS+NSZ86Usf1h0imMowb13R5FktHfQWE1wUAf0duE1OgWP9dnHHs046rG0rmqAR6/aDajq5P60gckrepRAJmG1ffa24gIJDDU7ooBqpHBQcjFJCZ+mOIeWmySfhsCgXsaq1kUOJZySM7mnqmBOFO4vfEFTWV5oc+xp43gBX8VR9DWDY7gyapj1fAdwSeF64JWwU0uRwdCWuu1liFc+V62SLrG5nV7EsXpNQHtg/oEFEZ3btlx+4HiMW9hVnfrB7j0RkOXa+K1KNM2aj7DiJiSK3fplLboX5McGvzpXFLHP3xWTdb2PXlg3Oeukb5bOkuWFF9ql4u71jXW0EcUPZWCSkYIbpjTjl3hNQdJvSpKv5H0ZkPoCsret6/U7jkAm5mosmRHyDWUUzfE/pMDfc7j9j2lHIS+FnIE2eJdj0pgK/R/nSoZBZ+22aQoz4uK2UzjOHPKes8FmogRtBWRzw48aRGVdejI8y7O8e2l9A/eIT2JPqZuU4gME3aGMlPAhDqRfARt0vd1hc2Ls4Vp11Bcp05HIST32m0P/0Gsqwr/qMxFXuw2Bh8k4bkcG9WvkYtp2Sp4WC3EC5eD+wna6lnhnAXSBvWcLuf2bDwzufZEbr8nexD+mu1nC8qcZZ4CuBX+r2ZYzCGYqUbwBjz2pEjLO/pLRFKPN8qdo4NykZYLxCHufG8jX0brZbzslrOa+GYjX7oCM0nR+ghgKtP90umhGslnqbn4t8zvCxjlDiuZ47rs7GJ5xZ1seIJwvraskhXy/mZfo8hfE0ZLLr/K0Dj4q2ruiHXyX3d3ar9F8IFDrUTBSo8or3pPUP4JqqbjI8x0LUpmVx+QvTKBcLOjuqLovkD6zzp6wzDJc85wD0vjW15+OkCwGUMnaeKAlJMe/KNWKGkAWcI3em/JYb8ikqcMHkHd4jh00v0x4EUYnMbIsWeD5qHoPmiqz7Vy/WM3tkGMmCkBB2R0Sh3jOzni1882tugble4oE2kXf09Q/ilrhGWJ9cEW9YzQK8z3iBcb8/JsMtGnefm8/d4tsSjzHEs4rmAEL+5EztfwskgB+cFxCRbQOwkH2wZbn4yZKhnlWpih4HdpLpAifjxzZ3YBCe3PTc+AUXXNxQUA0MCeRKsT/5JJwKkhhxm4umUshTn/96SBzEqa5jHwJcgr2EmnhdDP2PPuoFux0br2vTBBm7Oc/vLjx+dwj+NiGQS0keIAT1DiOqdCB5Nkggygcj7W4qqL4nIfFSBap18FSDfQxf3uYNyLPRreY+OUNXfhibg1KZp4Rmj5sYCBY+YfCJ/9V27lmfSSp2OdlU8wsN7wNCnM/QMiDXS0LL2ADoOfQydZ0Kf3OmsJ6eYKv9f8DqiD14KJi4ke8lOeGIN/YFiF4jJ/1u1nK+q5XxDRpDiRXtnAS3sb5pLn8YgnASdTu7LSxNOwgZ6I+WXgaQ8LTdOHgE2vesBYjPpQ0NMa8jF4dvew6Zazs9jEM8VSFEOJaKiK2iRHSANR0mv3r0h0Ng9Qjw//z2+JsLDoEW/gOgvE9EdhBO0NnTyNYEs1H9A9J+JfT5ikxkkwaogCLW3oXBIsP4TQm95of6879Af3eZ5cGwImaGeT9VyHqTHDagfcBNPE7G+Bh+MIbb/gDz4LSiqxFJnCqEgZ9HdW5SYMGHCyyBqH454gVDZlR73xfR1OzT3TW5ZKaQY7sokz/dt0NZNX9UqYxBPdj/YDKmXi2TK/uONRJsJEyY4QEbeDYTYa0xl+VZANpwV6NQLNTT8/wFETmfKf2+CCgAAAABJRU5ErkJggg==";
+newspaperLogo.onload = () => draw();
+
+let img = null;
+let imgURL = null;
+let rotation = 0;
+
+let correction = {
+  brightness: 100,
+  contrast: 100,
+  saturation: 100
+};
+
+let correctedPreviewPhoto = null;
+let correctedFullPhoto = null;
+let correctionTimer = null;
+
+const SIZES = {
+  A4: {
+    portrait: { w: 2480, h: 3508, label: 'A4縦' },
+    landscape: { w: 3508, h: 2480, label: 'A4横' }
+  },
+  A3: {
+    portrait: { w: 3508, h: 4961, label: 'A3縦' },
+    landscape: { w: 4961, h: 3508, label: 'A3横' }
+  }
+};
+
+photoInput.addEventListener('change', handlePhoto);
+paperSize.addEventListener('change', ()=>{ fitPhoto(); draw(); });
+layoutType.addEventListener('change', ()=>{ fitPhoto(); draw(); });
+zoom.addEventListener('input', draw);
+offsetX.addEventListener('input', draw);
+offsetY.addEventListener('input', draw);
+document.getElementById('rotateLeft').addEventListener('click', ()=>{ rotation -= Math.PI/2; fitPhoto(false); draw(); });
+document.getElementById('rotateRight').addEventListener('click', ()=>{ rotation += Math.PI/2; fitPhoto(false); draw(); });
+document.getElementById('fitBtn').addEventListener('click', ()=>{ fitPhoto(); draw(); });
+document.getElementById('redrawBtn').addEventListener('click', draw);
+document.getElementById('goOrderBtn').addEventListener('click', ()=>{
+  document.getElementById('orderSection').scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+brightnessRange.addEventListener('input', ()=>{
+  correction.brightness = Number(brightnessRange.value);
+  syncCorrectionUI();
+  scheduleCorrectionPreview();
+});
+contrastRange.addEventListener('input', ()=>{
+  correction.contrast = Number(contrastRange.value);
+  syncCorrectionUI();
+  scheduleCorrectionPreview();
+});
+saturationRange.addEventListener('input', ()=>{
+  correction.saturation = Number(saturationRange.value);
+  syncCorrectionUI();
+  scheduleCorrectionPreview();
+});
+
+brightnessRange.addEventListener('change', refreshCorrectionPreview);
+contrastRange.addEventListener('change', refreshCorrectionPreview);
+saturationRange.addEventListener('change', refreshCorrectionPreview);
+
+document.getElementById('resetCorrectionBtn').addEventListener('click', ()=>{
+  correction = { brightness:100, contrast:100, saturation:100 };
+  syncCorrectionUI();
+  correctedPreviewPhoto = null;
+  correctedFullPhoto = null;
+  correctionNote.classList.remove('show');
+  correctionNote.textContent = '';
+  draw();
+});
+
+document.getElementById('autoCorrectBtn').addEventListener('click', autoCorrectPhoto);
+
+
+async function loadShopSettings(){
+  try{
+    const snap=await getDoc(doc(db,"settings",shopId));
+    if(snap.exists()) shopSettings={...defaultSettings,...snap.data()};
+  }catch(err){
+    console.error("settings load failed",err);
+  }
+  document.getElementById("shopNameBadge").textContent=shopSettings.shopName||defaultSettings.shopName;
+  renderSurvey();
+  updateOrderSummary();
+}
+
+function renderSurvey(){
+  surveyQuestionEl.textContent=shopSettings.surveyQuestion||defaultSettings.surveyQuestion;
+  const opts=Array.isArray(shopSettings.surveyOptions) && shopSettings.surveyOptions.length
+    ? shopSettings.surveyOptions
+    : defaultSettings.surveyOptions;
+  surveyOptionsEl.innerHTML=opts.map((o,i)=>`
+    <label><input type="radio" name="surveyAnswer" value="${escapeHtml(String(o))}" ${i===0?"checked":""}> <span>${escapeHtml(String(o))}</span></label>
+  `).join("");
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+}
+
+function getUnitPrice(){
+  return paperSize.value==="A3" ? Number(shopSettings.a3Price||0) : Number(shopSettings.a4Price||0);
+}
+
+function yen(v){
+  return Number(v)>0 ? `${Number(v).toLocaleString("ja-JP")}円` : "料金は営業所でご案内";
+}
+
+function updateOrderSummary(){
+  const n=Number(copies.value||1);
+  const unit=getUnitPrice();
+  orderSummary.textContent=`${paperSize.value}・${n}枚`;
+  totalPrice.textContent=unit>0 ? yen(unit*n) : "料金は営業所でご案内";
+}
+
+paperSize.addEventListener("change",updateOrderSummary);
+copies.addEventListener("change",updateOrderSummary);
+
+async function ensureAnonymousUser(){
+  if(auth.currentUser) return auth.currentUser;
+  const cred=await signInAnonymously(auth);
+  return cred.user;
+}
+
+async function issueQueue(){
+  const counterKey=`${shopId}_annual2027`;
+  const counterRef=doc(db,"counters",counterKey);
+  const num=await runTransaction(db,async tx=>{
+    const snap=await tx.get(counterRef);
+    const current=snap.exists() ? Number(snap.data().lastNumber||0) : 0;
+    const next=current+1;
+    tx.set(counterRef,{
+      shopId,
+      service:"annual-calendar-2027",
+      lastNumber:next,
+      updatedAt:serverTimestamp()
+    },{merge:true});
+    return next;
+  });
+  const serial=String(num).padStart(4,"0");
+  return {
+    serialNo:num,
+    shortId:`${String(shopSettings.shopCode||"C").toUpperCase()}${serial}`
+  };
+}
+
+function canvasToPngBlob(){
+  return new Promise((resolve,reject)=>{
+    ensureFullCorrection();
+    draw();
+    canvas.toBlob(blob=>{
+      if(blob) resolve(blob);
+      else reject(new Error("canvas-toBlob-failed"));
+    },"image/png");
+  });
+}
+
+function selectedSurveyAnswer(){
+  return document.querySelector('input[name="surveyAnswer"]:checked')?.value||"";
+}
+
+function showOrderStatus(type,html){
+  orderStatus.className=`order-status ${type}`;
+  orderStatus.innerHTML=html;
+}
+
+submitOrderBtn.addEventListener("click",async ()=>{
+  if(!img){
+    alert("先に写真を選んでください。");
+    return;
+  }
+  if(!customerName.value.trim() || !addressInput.value.trim() || !phone.value.trim()){
+    alert("お名前・ご住所・連絡先電話番号を入力してください。");
+    return;
+  }
+  if(!privacyConsent.checked){
+    alert("個人情報・写真データの取り扱いへの同意が必要です。");
+    return;
+  }
+
+  submitOrderBtn.disabled=true;
+  showOrderStatus("sending","受付番号を発行しています…");
+
+  let orderRef=null;
+  try{
+    const user=await ensureAnonymousUser();
+    const issued=await issueQueue();
+    const mode=currentMode();
+    const count=Number(copies.value||1);
+    const unitPrice=getUnitPrice();
+
+    orderRef=doc(collection(db,"orders"));
+    const storagePath=`annual-calendar-orders/${user.uid}/${orderRef.id}.png`;
+
+    await setDoc(orderRef,{
+      source:SOURCE,
+      productName:"2027年 フォトカレンダー",
+      serviceYear:2027,
+      status:"UPLOADING",
+      shortId:issued.shortId,
+      serialNo:issued.serialNo,
+
+      shopId,
+      shopName:shopSettings.shopName||defaultSettings.shopName,
+      shopCode:shopSettings.shopCode||defaultSettings.shopCode,
+
+      paperSize:paperSize.value,
+      layoutType:layoutType.value,
+      layoutLabel:layoutType.value==="portraitPhoto"?"縦写真向け":"横写真向け",
+      orientation:mode.w>mode.h?"landscape":"portrait",
+      width:mode.w,
+      height:mode.h,
+      copies:count,
+      unitPrice,
+      totalPrice:unitPrice*count,
+
+      customerName:customerName.value.trim(),
+      address:addressInput.value.trim(),
+      phone:phone.value.trim(),
+      freeNote:freeNote.value.trim(),
+      surveyQuestion:shopSettings.surveyQuestion||defaultSettings.surveyQuestion,
+      surveyAnswer:selectedSurveyAnswer(),
+
+      privacyConsent:true,
+      noticeConsent:!!noticeConsent.checked,
+      privacyPurpose:"calendar-delivery-and-support",
+      photoRetentionPolicy:"delete-30-days-after-delivery",
+
+      ownerUid:user.uid,
+      storagePath,
+      createdAt:serverTimestamp(),
+      updatedAt:serverTimestamp()
+    });
+
+    showOrderStatus("sending","写真データを送信しています…");
+    const blob=await canvasToPngBlob();
+    await uploadBytes(ref(storage,storagePath),blob,{
+      contentType:"image/png",
+      customMetadata:{
+        source:SOURCE,
+        shopId,
+        shortId:issued.shortId
+      }
+    });
+
+    await updateDoc(orderRef,{
+      status:"WAIT",
+      uploadCompletedAt:serverTimestamp(),
+      updatedAt:serverTimestamp()
+    });
+
+    showOrderStatus("success",`
+      お申し込みを受け付けました。
+      <span class="receipt-no">${escapeHtml(issued.shortId)}</span>
+      ${escapeHtml(shopSettings.shopName||defaultSettings.shopName)}で受付しています。<br>
+      お届けまで、この受付番号を控えておいてください。
+    `);
+    submitOrderBtn.textContent="受付済み";
+  }catch(err){
+    console.error(err);
+    if(orderRef){
+      try{
+        await updateDoc(orderRef,{
+          status:"UPLOAD_ERROR",
+          uploadErrorCode:String(err?.code||err?.message||err),
+          updatedAt:serverTimestamp()
+        });
+      }catch(_){}
+    }
+    showOrderStatus("error","送信できませんでした。通信状態を確認して、もう一度お試しください。");
+    submitOrderBtn.disabled=false;
+  }
+});
+
+function currentMode(){
+  const size = paperSize.value;
+  const portraitPhoto = layoutType.value === 'portraitPhoto';
+  if (portraitPhoto){
+    return {...SIZES[size].landscape, paper:size, kind:'portraitPhoto', label:`${size} / 縦写真向け`};
+  } else {
+    return {...SIZES[size].portrait, paper:size, kind:'landscapePhoto', label:`${size} / 横写真向け`};
+  }
+}
+
+function handlePhoto(e){
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  if(imgURL) URL.revokeObjectURL(imgURL);
+  imgURL = URL.createObjectURL(file);
+  const image = new Image();
+  image.onload = ()=>{
+    img = image;
+    rotation = 0;
+    correction = { brightness:100, contrast:100, saturation:100 };
+    correctedPreviewPhoto = null;
+    correctedFullPhoto = null;
+    syncCorrectionUI();
+    correctionNote.classList.remove('show');
+    correctionNote.textContent = '';
+    fitPhoto();
+    draw();
+  };
+  image.src = imgURL;
+}
+
+function clamp(v,min,max){
+  return Math.max(min,Math.min(max,v));
+}
+
+function correctionIsNeutral(){
+  return correction.brightness===100 &&
+         correction.contrast===100 &&
+         correction.saturation===100;
+}
+
+function syncCorrectionUI(){
+  brightnessRange.value = correction.brightness;
+  contrastRange.value = correction.contrast;
+  saturationRange.value = correction.saturation;
+
+  brightnessValue.textContent = `${correction.brightness}%`;
+  contrastValue.textContent = `${correction.contrast}%`;
+  saturationValue.textContent = `${correction.saturation}%`;
+}
+
+function buildCorrectedPhoto(maxDimension=1200){
+  if(!img || correctionIsNeutral()) return null;
+
+  const sw = img.naturalWidth || img.width;
+  const sh = img.naturalHeight || img.height;
+  const scale = Math.min(1, maxDimension / Math.max(sw,sh));
+  const w = Math.max(1, Math.round(sw*scale));
+  const h = Math.max(1, Math.round(sh*scale));
+
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const cctx = c.getContext('2d',{willReadFrequently:true});
+  cctx.drawImage(img,0,0,w,h);
+
+  const imageData = cctx.getImageData(0,0,w,h);
+  const d = imageData.data;
+
+  const brightness = correction.brightness / 100;
+  const contrast = correction.contrast / 100;
+  const saturation = correction.saturation / 100;
+
+  for(let i=0;i<d.length;i+=4){
+    let r=d[i], g=d[i+1], b=d[i+2];
+
+    const gray = 0.2126*r + 0.7152*g + 0.0722*b;
+
+    r = gray + (r-gray)*saturation;
+    g = gray + (g-gray)*saturation;
+    b = gray + (b-gray)*saturation;
+
+    r = (r-128)*contrast + 128;
+    g = (g-128)*contrast + 128;
+    b = (b-128)*contrast + 128;
+
+    r *= brightness;
+    g *= brightness;
+    b *= brightness;
+
+    d[i]   = clamp(Math.round(r),0,255);
+    d[i+1] = clamp(Math.round(g),0,255);
+    d[i+2] = clamp(Math.round(b),0,255);
+  }
+
+  cctx.putImageData(imageData,0,0);
+  return c;
+}
+
+function refreshCorrectionPreview(){
+  if(!img) return;
+  correctedFullPhoto = null;
+
+  if(correctionIsNeutral()){
+    correctedPreviewPhoto = null;
+    draw();
+    return;
+  }
+
+  correctedPreviewPhoto = buildCorrectedPhoto(1200);
+  draw();
+}
+
+function scheduleCorrectionPreview(){
+  correctedFullPhoto = null;
+  clearTimeout(correctionTimer);
+  correctionTimer = setTimeout(refreshCorrectionPreview,35);
+}
+
+function ensureFullCorrection(){
+  if(!img || correctionIsNeutral()){
+    correctedFullPhoto = null;
+    return;
+  }
+  if(!correctedFullPhoto){
+    correctedFullPhoto = buildCorrectedPhoto(3200);
+  }
+}
+
+function getRenderPhoto(){
+  if(correctionIsNeutral()) return img;
+  return correctedFullPhoto || correctedPreviewPhoto || img;
+}
+
+function autoCorrectPhoto(){
+  if(!img){
+    alert('先に写真を選んでください。');
+    return;
+  }
+
+  const sample = document.createElement('canvas');
+  const maxDim = 500;
+  const sw = img.naturalWidth || img.width;
+  const sh = img.naturalHeight || img.height;
+  const sc = Math.min(1,maxDim/Math.max(sw,sh));
+  sample.width = Math.max(1,Math.round(sw*sc));
+  sample.height = Math.max(1,Math.round(sh*sc));
+
+  const sctx = sample.getContext('2d',{willReadFrequently:true});
+  sctx.drawImage(img,0,0,sample.width,sample.height);
+  const d = sctx.getImageData(0,0,sample.width,sample.height).data;
+
+  let sum=0, sumSq=0, chromaSum=0, count=0;
+  for(let i=0;i<d.length;i+=16){
+    const r=d[i], g=d[i+1], b=d[i+2];
+    const lum=0.2126*r+0.7152*g+0.0722*b;
+    sum += lum;
+    sumSq += lum*lum;
+    chromaSum += Math.max(r,g,b)-Math.min(r,g,b);
+    count++;
+  }
+
+  const mean=sum/count;
+  const variance=Math.max(0,sumSq/count-mean*mean);
+  const std=Math.sqrt(variance);
+  const chroma=chromaSum/count;
+
+  let brightness=100;
+  if(mean<135) brightness=clamp(Math.round(100+(135-mean)*0.65),100,150);
+  else if(mean>185) brightness=clamp(Math.round(100-(mean-185)*0.35),80,100);
+
+  let contrast=100;
+  if(std<58) contrast=clamp(Math.round(100+(58-std)*1.35),100,165);
+  else if(std>82) contrast=clamp(Math.round(100-(std-82)*0.45),82,100);
+
+  const saturation = chroma < 42 ? 155 : chroma < 70 ? 138 : 122;
+
+  correction = { brightness, contrast, saturation };
+  syncCorrectionUI();
+  refreshCorrectionPreview();
+
+  correctionNote.textContent =
+    `おまかせ補正を適用しました。明るさ ${brightness}%・くっきり ${contrast}%・色あざやか ${saturation}%`;
+  correctionNote.classList.add('show');
+}
+
+function fitPhoto(){
+  zoom.value = 100;
+  offsetX.value = 0;
+  offsetY.value = 0;
+}
+
+function setCanvasSize(){
+  const mode = currentMode();
+  canvas.width = mode.w;
+  canvas.height = mode.h;
+  sizeLabel.textContent = mode.label;
+  infoChip.textContent = `${YEAR}年 1月〜12月`;
+  return mode;
+}
+
+function roundedRectPath(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function getLayoutRects(mode){
+  const pad = mode.paper === 'A4' ? 80 : 120;
+
+  if(mode.kind === 'portraitPhoto'){
+    // 縦写真向け：写真の上に年号専用の小さな帯を設け、右肩上の外側へ配置
+    const gap = mode.paper === 'A4' ? 60 : 90;
+    const yearH = mode.paper === 'A4' ? 100 : 138;
+    const yearGap = mode.paper === 'A4' ? 14 : 20;
+
+    const photoW = Math.round(mode.w * 0.57) - pad;
+    const photoX = pad;
+    const photoY = pad + yearH + yearGap;
+    const photoH = mode.h - pad - photoY;
+
+    const monthsX = pad + photoW + gap;
+    const monthsW = mode.w - monthsX - pad;
+
+    return {
+      year: { x: photoX, y: pad, w: photoW, h: yearH },
+      photo: { x: photoX, y: photoY, w: photoW, h: photoH },
+      monthGrid: {
+        x: monthsX,
+        y: pad,
+        w: monthsW,
+        h: mode.h - pad*2
+      }
+    };
+  } else {
+    // 横写真向け：写真の上に年号専用の小さな帯を設け、左肩上の外側へ配置
+    const gap = mode.paper === 'A4' ? 32 : 48;
+    const yearH = mode.paper === 'A4' ? 98 : 132;
+    const yearGap = mode.paper === 'A4' ? 14 : 18;
+
+    const photoY = pad + yearH + yearGap;
+    const photoH = Math.round(mode.h * 0.43) - pad;
+    const monthsY = photoY + photoH + gap;
+    const monthsH = mode.h - monthsY - pad;
+
+    return {
+      year: { x: pad, y: pad, w: mode.w - pad*2, h: yearH },
+      photo: { x: pad, y: photoY, w: mode.w - pad*2, h: photoH },
+      month: { x: pad, y: monthsY, w: mode.w - pad*2, h: monthsH }
+    };
+  }
+}
+
+function drawPhotoRect(rect, mode){
+  ctx.save();
+  roundedRectPath(ctx, rect.x, rect.y, rect.w, rect.h, mode.paper === 'A4' ? 38 : 52);
+  ctx.clip();
+
+  const grad = ctx.createLinearGradient(rect.x, rect.y, rect.x, rect.y + rect.h);
+  grad.addColorStop(0, '#f7f3fb');
+  grad.addColorStop(1, '#e8e1ef');
+  ctx.fillStyle = grad;
+  ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+
+  if(img){
+    const source = getRenderPhoto();
+    const zoomScale = Number(zoom.value) / 100;
+    const rad = rotation;
+    const rotated = Math.abs(Math.sin(rad)) > 0.5;
+    const sw = source.width;
+    const sh = source.height;
+    const iw = rotated ? sh : sw;
+    const ih = rotated ? sw : sh;
+    const baseScale = Math.max(rect.w / iw, rect.h / ih);
+    const finalScale = baseScale * zoomScale;
+
+    const dx = (Number(offsetX.value) / 100) * rect.w * 0.32;
+    const dy = (Number(offsetY.value) / 100) * rect.h * 0.32;
+
+    const cx = rect.x + rect.w/2 + dx;
+    const cy = rect.y + rect.h/2 + dy;
+
+    ctx.translate(cx, cy);
+    ctx.rotate(rad);
+    ctx.drawImage(
+      source,
+      -sw * finalScale / 2,
+      -sh * finalScale / 2,
+      sw * finalScale,
+      sh * finalScale
+    );
+  } else {
+    ctx.fillStyle = '#f0f2f4';
+    ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.fillStyle = '#777f86';
+    ctx.font = `700 ${mode.paper === 'A4' ? 54 : 76}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('ここに写真が入ります', rect.x + rect.w/2, rect.y + rect.h/2 - 24);
+    ctx.font = `500 ${mode.paper === 'A4' ? 26 : 34}px sans-serif`;
+    ctx.fillText('左の「写真を選ぶ」からアップロード', rect.x + rect.w/2, rect.y + rect.h/2 + 28);
+  }
+
+  ctx.restore();
+}
+
+function drawYearTitle(mode, rects){
+  ctx.save();
+
+  const y = rects.year;
+  const isA4 = mode.paper === 'A4';
+  const fontSize = mode.kind === 'portraitPhoto'
+    ? (isA4 ? 76 : 108)
+    : (isA4 ? 74 : 104);
+
+  ctx.font = `400 ${fontSize}px Georgia, serif`;
+  ctx.textBaseline = 'middle';
+
+  if(mode.kind === 'portraitPhoto'){
+    // 写真の右肩上の外側
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#3b3d40';
+    ctx.fillText(String(YEAR), y.x + y.w, y.y + y.h/2);
+  } else {
+    // 写真の左肩上の外側
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#3b3d40';
+    ctx.fillText(String(YEAR), y.x, y.y + y.h/2);
+  }
+
+  ctx.restore();
+}
+
+function monthMatrix(year, month){
+  const firstDay = new Date(year, month-1, 1).getDay();
+  const lastDate = new Date(year, month, 0).getDate();
+  const weeks = [];
+  let week = new Array(7).fill('');
+  let day = 1;
+  for(let i=0;i<firstDay;i++) week[i] = '';
+  for(let i=firstDay;i<7;i++) week[i] = day++;
+  weeks.push(week);
+  while(day <= lastDate){
+    week = new Array(7).fill('');
+    for(let i=0;i<7 && day<=lastDate;i++) week[i] = day++;
+    weeks.push(week);
+  }
+  while(weeks.length < 6) weeks.push(new Array(7).fill(''));
+  return weeks;
+}
+
+function drawMonthBox(x, y, w, h, month, mode){
+  ctx.save();
+
+  const isA4 = mode.paper === 'A4';
+  const monthFont = isA4 ? 58 : 82;
+  const monthKanjiFont = isA4 ? 28 : 38;
+  const weekdayFont = isA4 ? 18 : 24;
+  const dateFont = isA4 ? 50 : 66; // A4でも約12pt相当以上
+  const headH = isA4 ? 82 : 108;
+  const weekdayH = isA4 ? 28 : 38;
+  const gridTop = y + headH + weekdayH + 8;
+  const innerX = x;
+  const innerW = w;
+  const cellW = innerW / 7;
+  const cellH = (h - (gridTop-y) - (isA4 ? 8 : 12)) / 6;
+
+  // 月名：装飾を抑えたシンプル表記
+  ctx.fillStyle = '#3f4245';
+  ctx.font = `400 ${monthFont}px Georgia, "Yu Mincho", serif`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(String(month), innerX, y + 2);
+
+  ctx.fillStyle = '#6d7378';
+  ctx.font = `500 ${monthKanjiFont}px sans-serif`;
+  ctx.fillText('月', innerX + (isA4 ? 50 : 72), y + (isA4 ? 28 : 39));
+
+  // 月見出し下の細線
+  ctx.strokeStyle = '#cfd3d6';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(innerX, y + headH - 4);
+  ctx.lineTo(innerX + innerW, y + headH - 4);
+  ctx.stroke();
+
+  const weekdays = ['日','月','火','水','木','金','土'];
+  ctx.font = `500 ${weekdayFont}px sans-serif`;
+  for(let i=0;i<7;i++){
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = i===0 ? '#e34f4f' : i===6 ? '#438bd0' : '#6f757a';
+    ctx.fillText(weekdays[i], innerX + cellW*i + cellW/2, y + headH + weekdayH/2);
+  }
+
+  const weeks = monthMatrix(YEAR, month);
+  ctx.font = `500 ${dateFont}px sans-serif`;
+
+  for(let r=0;r<6;r++){
+    for(let c=0;c<7;c++){
+      const value = weeks[r][c];
+      if(value === '') continue;
+
+      const holiday = isJapanHoliday(YEAR, month, value);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = (c===0 || holiday)
+        ? '#e34f4f'
+        : c===6
+          ? '#438bd0'
+          : '#34383b';
+
+      ctx.fillText(
+        String(value),
+        innerX + cellW*c + cellW/2,
+        gridTop + r*cellH + cellH/2
+      );
+    }
+  }
+  ctx.restore();
+}
+
+function drawMonths(mode, rects){
+  ctx.save();
+  if(mode.kind === 'portraitPhoto'){
+    const g = rects.monthGrid;
+
+    // 縦写真向けは、2列×6段だと1か月あたりの高さが不足するため、
+    // 3列×4段にして日付数字の上下間隔を確保する。
+    const cols = 3, rows = 4;
+    const gapX = mode.paper === 'A4' ? 16 : 22;
+    const gapY = mode.paper === 'A4' ? 26 : 34;
+    const boxW = (g.w - gapX*(cols-1)) / cols;
+    const boxH = (g.h - gapY*(rows-1)) / rows;
+
+    let month = 1;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const x = g.x + c*(boxW + gapX);
+        const y = g.y + r*(boxH + gapY);
+        drawMonthBox(x, y, boxW, boxH, month++, mode);
+      }
+    }
+  } else {
+    const g = rects.month;
+    const cols = 3, rows = 4;
+    const gapX = mode.paper === 'A4' ? 24 : 32;
+    const gapY = mode.paper === 'A4' ? 22 : 32;
+    const boxW = (g.w - gapX*(cols-1)) / cols;
+    const boxH = (g.h - gapY*(rows-1)) / rows;
+
+    let month = 1;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const x = g.x + c*(boxW + gapX);
+        const y = g.y + r*(boxH + gapY);
+        drawMonthBox(x, y, boxW, boxH, month++, mode);
+      }
+    }
+  }
+  ctx.restore();
+}
+
+function drawNewspaperLogo(mode){
+  if(!newspaperLogo || !newspaperLogo.complete || !newspaperLogo.naturalWidth) return;
+
+  ctx.save();
+
+  // カレンダー全体の右下角。日付にかぶらない下余白内に配置。
+  const right = mode.paper === 'A4' ? 38 : 56;
+  const bottom = mode.paper === 'A4' ? 18 : 28;
+  const maxW = mode.paper === 'A4' ? 250 : 360;
+  const maxH = mode.paper === 'A4' ? 52 : 76;
+
+  const scale = Math.min(
+    maxW / newspaperLogo.naturalWidth,
+    maxH / newspaperLogo.naturalHeight
+  );
+  const w = newspaperLogo.naturalWidth * scale;
+  const h = newspaperLogo.naturalHeight * scale;
+
+  const x = mode.w - right - w;
+  const y = mode.h - bottom - h;
+
+  ctx.drawImage(newspaperLogo, x, y, w, h);
+  ctx.restore();
+}
+
+function draw(){
+  const mode = setCanvasSize();
+  const rects = getLayoutRects(mode);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  drawPhotoRect(rects.photo, mode);
+  drawYearTitle(mode, rects);
+  drawMonths(mode, rects);
+  drawNewspaperLogo(mode);
+}
+
+function downloadPng(){
+  ensureFullCorrection();
+  draw();
+  const a = document.createElement('a');
+  const mode = currentMode();
+  a.href = canvas.toDataURL('image/png');
+  a.download = `photo-calendar-${YEAR}-${mode.paper}-${mode.kind}.png`;
+  a.click();
+}
+
+syncCorrectionUI();
+draw();
+loadShopSettings();
+ensureAnonymousUser().catch(err=>console.error("anonymous auth failed",err));
+</script>
+</body>
+</html>
