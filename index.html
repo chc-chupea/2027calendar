@@ -1367,7 +1367,9 @@ function getLayoutRects(mode){
     const yearH = mode.paper === 'A4' ? 100 : 138;
     const yearGap = mode.paper === 'A4' ? 14 : 20;
 
-    const photoW = Math.round(mode.w * 0.57) - pad;
+    // 写真幅は従来の80％に縮小し、その分カレンダー側を広げる
+    const previousPhotoW = Math.round(mode.w * 0.57) - pad;
+    const photoW = Math.round(previousPhotoW * 0.80);
     const photoX = pad;
     const photoY = pad + yearH + yearGap;
     const photoH = mode.h - pad - photoY;
@@ -1513,8 +1515,9 @@ function drawMonthBox(x, y, w, h, month, mode){
   const headH = isA4 ? 82 : 108;
   const weekdayH = isA4 ? 28 : 38;
   const gridTop = y + headH + weekdayH + 8;
-  const innerX = x;
-  const innerW = w;
+  const dateWidthRatio = mode.kind === 'landscapePhoto' ? 0.90 : 1;
+  const innerW = w * dateWidthRatio;
+  const innerX = x + (w - innerW) / 2;
   const cellW = innerW / 7;
   const cellH = (h - (gridTop-y) - (isA4 ? 8 : 12)) / 6;
 
@@ -1523,18 +1526,18 @@ function drawMonthBox(x, y, w, h, month, mode){
   ctx.font = `400 ${monthFont}px Georgia, "Yu Mincho", serif`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  ctx.fillText(String(month), innerX, y + 2);
+  ctx.fillText(String(month), x, y + 2);
 
   ctx.fillStyle = '#6d7378';
   ctx.font = `500 ${monthKanjiFont}px sans-serif`;
-  ctx.fillText('月', innerX + (isA4 ? 50 : 72), y + (isA4 ? 28 : 39));
+  ctx.fillText('月', x + (isA4 ? 50 : 72), y + (isA4 ? 28 : 39));
 
   // 月見出し下の細線
   ctx.strokeStyle = '#cfd3d6';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(innerX, y + headH - 4);
-  ctx.lineTo(innerX + innerW, y + headH - 4);
+  ctx.moveTo(x, y + headH - 4);
+  ctx.lineTo(x + w, y + headH - 4);
   ctx.stroke();
 
   const weekdays = ['日','月','火','水','木','金','土'];
@@ -1581,8 +1584,8 @@ function drawMonths(mode, rects){
     // 縦写真向けは、2列×6段だと1か月あたりの高さが不足するため、
     // 3列×4段にして日付数字の上下間隔を確保する。
     const cols = 3, rows = 4;
-    const gapX = mode.paper === 'A4' ? 16 : 22;
-    const gapY = mode.paper === 'A4' ? 26 : 34;
+    const gapX = mode.paper === 'A4' ? 34 : 46;
+    const gapY = mode.paper === 'A4' ? 42 : 56;
     const boxW = (g.w - gapX*(cols-1)) / cols;
     const boxH = (g.h - gapY*(rows-1)) / rows;
 
@@ -1628,7 +1631,7 @@ function drawReceiptNumber(mode){
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
   ctx.fillStyle = '#5f666c';
-  ctx.fillText(`受付番号 ${currentReceiptNo}`, left, mode.h - bottom);
+  ctx.fillText(currentReceiptNo, left, mode.h - bottom);
 
   ctx.restore();
 }
