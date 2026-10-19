@@ -20,7 +20,7 @@ button{border:0;border-radius:8px;padding:12px 14px;font-weight:900;cursor:point
   <div id="loginCard" class="card">
     <h2>スタッフログイン</h2>
     <input id="email" type="email" placeholder="メールアドレス">
-    <input id="password" type="password" placeholder="パスワード" style="margin-top:8px">
+    <input id="password" type="password" placeholder="現在のパスワード または 4桁PIN" style="margin-top:8px">
     <button id="loginBtn" class="primary" style="margin-top:10px">ログイン</button>
     <div id="loginMsg" class="msg"></div>
   </div>
@@ -35,6 +35,9 @@ button{border:0;border-radius:8px;padding:12px 14px;font-weight:900;cursor:point
       </label>
       <label>管理画面ログイン用メール
         <input id="adminLoginEmail" type="email" placeholder="Firebase Authenticationに登録したメール">
+      </label>
+      <label>管理画面 4桁パスワード
+        <input id="adminPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="例：1234">
       </label>
       <label class="full">営業所名
         <input id="shopName" placeholder="例：廿日市東営業所">
@@ -72,18 +75,31 @@ button{border:0;border-radius:8px;padding:12px 14px;font-weight:900;cursor:point
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 
 const firebaseConfig={apiKey:"AIzaSyBKSYZgaSVTu-HO_lS1Tp2eFjSjMuOONNI",authDomain:"my-uchiwa-queue.firebaseapp.com",projectId:"my-uchiwa-queue",storageBucket:"my-uchiwa-queue.firebasestorage.app",messagingSenderId:"245883628081",appId:"1:245883628081:web:ab7f00f01ba256ebca8310",measurementId:"G-W4S3EKL9TY"};
 const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
+
+function firebasePasswordFromPin(pin,id){
+  return `CAL2027-${id}-${pin}`;
+}
 const params=new URLSearchParams(location.search);
 let shopId=(params.get("shop")||"main").replace(/[^a-zA-Z0-9_-]/g,"")||"main";
 const d={shopName:"カレンダー受付営業所",shopCode:"C",a4Price:0,a3Price:0,surveyQuestion:"このカレンダー企画をどこで知りましたか？",surveyOptions:["新聞折込","営業所からの案内","家族・知人","その他"]};
 
 const $=id=>document.getElementById(id);
 $("loginBtn").onclick=async()=>{
- try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);$("loginMsg").textContent=""}
- catch(e){console.error(e);$("loginMsg").textContent="ログインできませんでした。"}
+  const email=$("email").value.trim();
+  const entered=$("password").value;
+  const id=(params.get("shop")||"main").replace(/[^a-zA-Z0-9_-]/g,"")||"main";
+  const password=/^\d{4}$/.test(entered) ? firebasePasswordFromPin(entered,id) : entered;
+  try{
+    await signInWithEmailAndPassword(auth,email,password);
+    $("loginMsg").textContent="";
+  }catch(e){
+    console.error(e);
+    $("loginMsg").textContent="ログインできませんでした。";
+  }
 };
 $("logoutBtn").onclick=()=>signOut(auth);
 
@@ -129,12 +145,21 @@ $("shopIdInput").addEventListener("input",renderUrls);
 $("saveBtn").onclick=async()=>{
  const id=($("shopIdInput").value.trim()||"main").replace(/[^a-zA-Z0-9_-]/g,"")||"main";
  const opts=$("surveyOptions").value.split("\n").map(x=>x.trim()).filter(Boolean);
+ const pin=$("adminPin").value.trim();
+ if(pin && !/^\d{4}$/.test(pin)){
+   $("msg").textContent="管理パスワードは数字4桁で入力してください。";
+   return;
+ }
  try{
+  if(pin){
+    if(!auth.currentUser) throw new Error("not-authenticated");
+    await updatePassword(auth.currentUser,firebasePasswordFromPin(pin,id));
+  }
   await setDoc(doc(db,"settings",id),{
    shopId:id,
    shopName:$("shopName").value.trim()||d.shopName,
    shopCode:($("shopCode").value.trim()||"C").toUpperCase(),
-   adminLoginEmail:$("adminLoginEmail").value.trim().toLowerCase(),
+   adminLoginEmail:($("adminLoginEmail").value.trim()||auth.currentUser?.email||"").toLowerCase(),
    a4Price:Number($("a4Price").value||0),
    a3Price:Number($("a3Price").value||0),
    surveyQuestion:$("surveyQuestion").value.trim()||d.surveyQuestion,
@@ -145,7 +170,7 @@ $("saveBtn").onclick=async()=>{
 
   const staffEmails=$("staffEmails").value
     .split("\n").map(x=>x.trim().toLowerCase()).filter(Boolean);
-  const loginEmail=$("adminLoginEmail").value.trim().toLowerCase();
+  const loginEmail=($("adminLoginEmail").value.trim()||auth.currentUser?.email||"").toLowerCase();
   if(loginEmail && !staffEmails.includes(loginEmail)) staffEmails.push(loginEmail);
   if(!staffEmails.length && auth.currentUser?.email){
     staffEmails.push(auth.currentUser.email.toLowerCase());
@@ -158,7 +183,7 @@ $("saveBtn").onclick=async()=>{
 
   shopId=id;
   history.replaceState(null,"",`?shop=${encodeURIComponent(id)}`);
-  $("msg").textContent="保存しました。";
+  $("msg").textContent=pin?"保存しました。管理画面は設定した4桁パスワードで開けます。":"保存しました。";
   renderUrls();
  }catch(e){console.error(e);$("msg").textContent="保存できませんでした。"}
 };

@@ -56,8 +56,8 @@ button,a.btn{border:0;border-radius:8px;padding:10px 12px;font-weight:800;cursor
 <main class="wrap">
   <section id="loginPanel" class="login">
     <h2>スタッフ用 管理画面</h2>
-    <p class="sub">営業所の管理パスワードを入力してください。</p>
-    <input id="password" type="password" autocomplete="current-password" placeholder="パスワード">
+    <p class="sub">営業所の4桁管理パスワードを入力してください。</p>
+    <input id="password" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="one-time-code" placeholder="4桁の数字">
     <button id="loginBtn" class="primary">開く</button>
     <div id="loginMsg" class="sub" style="margin-top:10px"></div>
   </section>
@@ -142,6 +142,10 @@ async function loadSettings(){
 
 let adminLoginEmail="";
 
+function firebasePasswordFromPin(pin){
+  return `CAL2027-${shopId}-${pin}`;
+}
+
 async function loadPublicLoginSetting(){
   try{
     const s=await getDoc(doc(db,"settings",shopId));
@@ -153,25 +157,30 @@ async function loadPublicLoginSetting(){
 }
 
 document.getElementById("loginBtn").onclick=async()=>{
-  const password=document.getElementById("password").value;
+  const pin=document.getElementById("password").value.trim();
   const msg=document.getElementById("loginMsg");
-  if(!password){
-    msg.textContent="パスワードを入力してください。";
+
+  if(!/^\d{4}$/.test(pin)){
+    msg.textContent="数字4桁で入力してください。";
     return;
   }
   if(!adminLoginEmail){
     msg.textContent="管理用ログイン設定がありません。settings.htmlで設定してください。";
     return;
   }
+
   msg.textContent="確認中…";
   try{
-    await signInWithEmailAndPassword(auth,adminLoginEmail,password);
+    await signInWithEmailAndPassword(auth,adminLoginEmail,firebasePasswordFromPin(pin));
     msg.textContent="";
   }catch(e){
     console.error(e);
-    msg.textContent="パスワードが違います。";
+    msg.textContent="4桁の管理パスワードが違います。";
   }
 };
+document.getElementById("password").addEventListener("keydown",e=>{
+  if(e.key==="Enter") document.getElementById("loginBtn").click();
+});
 document.getElementById("logoutBtn").onclick=()=>signOut(auth);
 
 await loadPublicLoginSetting();
@@ -341,7 +350,7 @@ grid.addEventListener("click",async e=>{
     if(b.dataset.action==="toggle-delivery"){
       const st=o.status||"WAIT";
       if(st==="READY"){
-        const deleteAfter=Timestamp.fromDate(new Date(Date.now()+30*DAY));
+        const deleteAfter=Timestamp.fromDate(new Date(Date.now()+7*DAY));
         await updateDoc(doc(db,"orders",id),{
           status:"DONE",
           deliveredAt:serverTimestamp(),

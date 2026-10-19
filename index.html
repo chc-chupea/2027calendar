@@ -704,6 +704,7 @@ newspaperLogo.onload = () => draw();
 let img = null;
 let imgURL = null;
 let rotation = 0;
+let currentReceiptNo = "";
 
 let correction = {
   brightness: 100,
@@ -1053,6 +1054,9 @@ submitOrderBtn.addEventListener("click",async ()=>{
   try{
     const user=await ensureAnonymousUser();
     const issued=await issueQueue();
+    currentReceiptNo=issued.shortId;
+    draw();
+
     const mode=currentMode();
     const count=Number(copies.value||1);
     const unitPrice=getUnitPrice();
@@ -1610,6 +1614,25 @@ function drawMonths(mode, rects){
   ctx.restore();
 }
 
+
+function drawReceiptNumber(mode){
+  if(!currentReceiptNo) return;
+
+  ctx.save();
+
+  const left = mode.paper === 'A4' ? 38 : 56;
+  const bottom = mode.paper === 'A4' ? 22 : 32;
+  const fontSize = mode.paper === 'A4' ? 22 : 31;
+
+  ctx.font = `700 ${fontSize}px sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+  ctx.fillStyle = '#5f666c';
+  ctx.fillText(`受付番号 ${currentReceiptNo}`, left, mode.h - bottom);
+
+  ctx.restore();
+}
+
 function drawNewspaperLogo(mode){
   if(!newspaperLogo || !newspaperLogo.complete || !newspaperLogo.naturalWidth) return;
 
@@ -1644,6 +1667,7 @@ function draw(){
   drawPhotoRect(rects.photo, mode);
   drawYearTitle(mode, rects);
   drawMonths(mode, rects);
+  drawReceiptNumber(mode);
   drawNewspaperLogo(mode);
 }
 
