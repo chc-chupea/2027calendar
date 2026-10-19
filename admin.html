@@ -43,6 +43,50 @@ button,a.btn{border:0;border-radius:8px;padding:10px 12px;font-weight:800;cursor
 .select-wrap{display:flex;align-items:center;gap:7px;font-size:11px;color:#6a747c;margin:0 0 8px}
 .select-wrap input{width:18px;height:18px}
 
+
+.pii-tools{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:12px 14px;
+  margin-bottom:12px;
+}
+.pii-tools-title{
+  font-weight:900;
+  font-size:13px;
+  margin-bottom:5px;
+}
+.pii-tools-note{
+  font-size:11px;
+  color:var(--muted);
+  line-height:1.55;
+  margin-bottom:10px;
+}
+.pii-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.csv-btn{
+  background:#3d728e;
+  color:#fff;
+}
+.pii-delete-btn{
+  background:#fff1ef;
+  color:#a2382d;
+  border:1px solid #efcac5;
+}
+.pii-deleted{
+  background:#f1f3f4;
+  border:1px solid #e0e4e7;
+  color:#646d74;
+  border-radius:8px;
+  padding:10px;
+  margin:9px 0;
+  font-size:12px;
+  font-weight:800;
+}
+
 </style>
 </head>
 <body>
@@ -68,6 +112,17 @@ button,a.btn{border:0;border-radius:8px;padding:10px 12px;font-weight:800;cursor
       <button id="autoToggle" class="auto-toggle">自動印刷 OFF</button>
     </div>
 
+    <div class="pii-tools">
+      <div class="pii-tools-title">個人情報の保存・削除</div>
+      <div class="pii-tools-note">
+        受渡済みの受付情報をCSVで保存できます。個人情報削除は、CSV保存済みの受渡済みデータだけが対象です。
+      </div>
+      <div class="pii-actions">
+        <button id="exportPiiCsvBtn" class="csv-btn">受渡済みの個人情報をCSV保存</button>
+        <button id="deleteExportedPiiBtn" class="pii-delete-btn">CSV保存済みの個人情報を削除</button>
+      </div>
+    </div>
+
     <div class="label-tools">
       <div class="count">ラベル選択：<b id="labelCount">0</b>件 / 12件</div>
       <button id="selectFirst12Btn" class="ghost">表示中から12件選択</button>
@@ -91,7 +146,7 @@ button,a.btn{border:0;border-radius:8px;padding:10px 12px;font-weight:800;cursor
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import {
-  getFirestore, collection, query, where, doc, getDoc, updateDoc,
+  getFirestore, collection, query, where, doc, getDoc, updateDoc, writeBatch,
   serverTimestamp, onSnapshot, runTransaction, Timestamp, deleteField
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 import { getStorage, ref, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js";
@@ -251,24 +306,27 @@ function render(){
     const note=o.freeNote?`<div class="note"><b>自由記述：</b>${esc(o.freeNote)}</div>`:"";
     const consent=o.noticeConsent?"お知らせ利用：同意あり":"お知らせ利用：同意なし";
     const expiry=o.photoDeleteAfter?`<br>写真削除予定：${fmt(o.photoDeleteAfter)}`:"";
+    const piiDeleted=!!o.piiDeletedAt;
     return `<article class="card" data-id="${o.id}">
       <div class="body" style="padding-bottom:0">
         <label class="select-wrap">
-          <input type="checkbox" class="label-select" data-id="${o.id}" ${selectedLabels.has(o.id)?"checked":""}>
-          <span>お届け用ラベルに入れる</span>
+          <input type="checkbox" class="label-select" data-id="${o.id}" ${selectedLabels.has(o.id)?"checked":""} ${piiDeleted?"disabled":""}>
+          <span>${piiDeleted?"個人情報削除済み":"お届け用ラベルに入れる"}</span>
         </label>
       </div>
       <div class="thumb" id="thumb-${o.id}">${deleted?"写真削除済み":"画像を読み込み中…"}</div>
       <div class="body">
         <div class="top"><div class="num">${esc(o.shortId||o.id)}</div><span class="badge ${st}">${st}</span></div>
         <div class="meta">${fmt(o.createdAt)}<br>${pLabel} ／ ${o.layoutLabel||""} ／ ${o.copies||1}枚 ／ ${money(o.totalPrice)}${expiry}</div>
-        <div class="personal">
-          <b>お名前：</b>${esc(o.customerName)}<br>
-          <b>住所：</b>${esc(o.address)}<br>
-          <b>電話：</b>${esc(o.phone)}<br>
-          <b>${consent}</b>${survey}
-        </div>
-        ${note}
+        ${piiDeleted
+          ? `<div class="pii-deleted">個人情報削除済み ${fmt(o.piiDeletedAt)}</div>`
+          : `<div class="personal">
+              <b>お名前：</b>${esc(o.customerName)}<br>
+              <b>住所：</b>${esc(o.address)}<br>
+              <b>電話：</b>${esc(o.phone)}<br>
+              <b>${consent}</b>${survey}
+            </div>${note}`
+        }
         <div class="actions">
           <button class="print" data-action="print" ${deleted||!o.storagePath?"disabled":""}>${deleted?"写真削除済み":"印刷"}</button>
           <button class="png" data-action="open" ${deleted||!o.storagePath?"disabled":""}>画像を開く</button>
@@ -446,6 +504,160 @@ function silentPrintImage(url,o){
   });
 }
 
+
+
+function csvEscape(value){
+  const s=String(value??"").replace(/\r\n/g,"\n").replace(/\r/g,"\n");
+  return `"${s.replace(/"/g,'""')}"`;
+}
+
+function dateForFilename(){
+  const d=new Date();
+  const p=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}`;
+}
+
+function safeFilename(s){
+  return String(s||"営業所").replace(/[\\/:*?"<>|]/g,"_").replace(/\s+/g,"_");
+}
+
+function piiExportTargets(){
+  return all.filter(o=>
+    (o.status||"WAIT")==="DONE" &&
+    !o.piiDeletedAt &&
+    (o.customerName || o.address || o.phone || o.freeNote || o.surveyAnswer)
+  );
+}
+
+function csvRowsForPii(orders){
+  const headers=[
+    "受付番号","受付日時","受渡日時","営業所",
+    "お名前","住所","電話番号","自由記述",
+    "アンケート質問","アンケート回答",
+    "用紙サイズ","写真レイアウト","枚数","料金",
+    "お知らせ利用同意"
+  ];
+
+  const rows=orders.map(o=>[
+    o.shortId||"",
+    fmt(o.createdAt),
+    fmt(o.deliveredAt),
+    o.shopName||shopSettings.shopName||"",
+    o.customerName||"",
+    o.address||"",
+    o.phone||"",
+    o.freeNote||"",
+    o.surveyQuestion||"",
+    o.surveyAnswer||"",
+    o.paperSize||"",
+    o.layoutLabel||"",
+    o.copies||1,
+    o.totalPrice||0,
+    o.noticeConsent?"同意":""
+  ]);
+
+  return [headers,...rows].map(row=>row.map(csvEscape).join(",")).join("\r\n");
+}
+
+async function markPiiExported(orders){
+  // 400件ずつバッチ更新（Firestore上限500に余裕を持たせる）
+  for(let i=0;i<orders.length;i+=400){
+    const batch=writeBatch(db);
+    for(const o of orders.slice(i,i+400)){
+      batch.update(doc(db,"orders",o.id),{
+        piiCsvExportedAt:serverTimestamp(),
+        updatedAt:serverTimestamp()
+      });
+    }
+    await batch.commit();
+  }
+}
+
+document.getElementById("exportPiiCsvBtn").onclick=async()=>{
+  const orders=piiExportTargets();
+  if(!orders.length){
+    alert("CSV保存できる受渡済みデータがありません。");
+    return;
+  }
+
+  const csv="\uFEFF"+csvRowsForPii(orders);
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`${safeFilename(shopSettings.shopName)}_2027カレンダー個人情報_${dateForFilename()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+
+  try{
+    await markPiiExported(orders);
+    alert(`${orders.length}件をCSV保存しました。\nこのデータは「CSV保存済み」として削除可能になりました。`);
+  }catch(e){
+    console.error(e);
+    alert("CSVは保存しましたが、保存済みフラグの記録に失敗しました。個人情報は削除しません。");
+  }
+};
+
+function exportedPiiDeleteTargets(){
+  return all.filter(o=>
+    (o.status||"WAIT")==="DONE" &&
+    !!o.piiCsvExportedAt &&
+    !o.piiDeletedAt
+  );
+}
+
+async function deletePiiFields(orders){
+  for(let i=0;i<orders.length;i+=400){
+    const batch=writeBatch(db);
+    for(const o of orders.slice(i,i+400)){
+      batch.update(doc(db,"orders",o.id),{
+        customerName:deleteField(),
+        address:deleteField(),
+        phone:deleteField(),
+        freeNote:deleteField(),
+        surveyQuestion:deleteField(),
+        surveyAnswer:deleteField(),
+        privacyConsent:deleteField(),
+        noticeConsent:deleteField(),
+        privacyPurpose:deleteField(),
+        ownerUid:deleteField(),
+        piiDeletedAt:serverTimestamp(),
+        updatedAt:serverTimestamp()
+      });
+    }
+    await batch.commit();
+  }
+}
+
+document.getElementById("deleteExportedPiiBtn").onclick=async()=>{
+  const orders=exportedPiiDeleteTargets();
+  if(!orders.length){
+    alert("削除できるCSV保存済みの個人情報がありません。");
+    return;
+  }
+
+  const first=confirm(
+    `${orders.length}件の個人情報を削除します。\n\n`+
+    `削除対象：お名前・住所・電話番号・自由記述・アンケート回答など\n`+
+    `受付番号・用紙サイズ・枚数・印刷/受渡状況は残ります。\n\n`+
+    `この操作は元に戻せません。続けますか？`
+  );
+  if(!first)return;
+
+  const word=prompt('最終確認です。削除する場合は「削除」と入力してください。');
+  if(word!=="削除")return;
+
+  try{
+    await deletePiiFields(orders);
+    selectedLabels.clear();
+    alert(`${orders.length}件の個人情報を削除しました。`);
+  }catch(e){
+    console.error(e);
+    alert("削除中にエラーが発生しました。画面を更新して状態を確認してください。");
+  }
+}
 
 function visibleOrders(){
   return filter==="ALL" ? all : all.filter(x=>(x.status||"WAIT")===filter);
