@@ -634,6 +634,7 @@ const defaultSettings={
   shopCode:"C",
   a4Price:0,
   a3Price:0,
+  pricingMode:"allPaid",
   surveyQuestion:"このカレンダー企画をどこで知りましたか？",
   surveyOptions:["新聞折込","営業所からの案内","家族・知人","その他"]
 };
@@ -971,15 +972,36 @@ function getUnitPrice(){
   return paperSize.value==="A3" ? Number(shopSettings.a3Price||0) : Number(shopSettings.a4Price||0);
 }
 
+function isFirstCopyFree(){
+  return (shopSettings.pricingMode||"allPaid")==="firstFree";
+}
+
+function getChargeableCopies(count){
+  const n=Math.max(1,Number(count)||1);
+  return isFirstCopyFree() ? Math.max(0,n-1) : n;
+}
+
+function calculateTotalPrice(count){
+  return getUnitPrice() * getChargeableCopies(count);
+}
+
 function yen(v){
-  return Number(v)>0 ? `${Number(v).toLocaleString("ja-JP")}円` : "料金は営業所でご案内";
+  return Number(v)>0 ? `${Number(v).toLocaleString("ja-JP")}円` : "0円";
 }
 
 function updateOrderSummary(){
   const n=Number(copies.value||1);
   const unit=getUnitPrice();
-  orderSummary.textContent=`${paperSize.value}・${n}枚`;
-  totalPrice.textContent=unit>0 ? yen(unit*n) : "料金は営業所でご案内";
+  const paidCopies=getChargeableCopies(n);
+  const modeText=isFirstCopyFree() ? "1枚目無料" : "1枚目から有料";
+
+  orderSummary.textContent=`${paperSize.value}・${n}枚（${modeText}）`;
+
+  if(unit<=0){
+    totalPrice.textContent="料金は営業所でご案内";
+  }else{
+    totalPrice.textContent=yen(unit*paidCopies);
+  }
 }
 
 paperSize.addEventListener("change",updateOrderSummary);
@@ -1084,7 +1106,10 @@ submitOrderBtn.addEventListener("click",async ()=>{
       height:mode.h,
       copies:count,
       unitPrice,
-      totalPrice:unitPrice*count,
+      pricingMode:shopSettings.pricingMode||"allPaid",
+      firstCopyFree:isFirstCopyFree(),
+      chargeableCopies:getChargeableCopies(count),
+      totalPrice:calculateTotalPrice(count),
 
       customerName:customerName.value.trim(),
       address:addressInput.value.trim(),

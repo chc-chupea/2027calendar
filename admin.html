@@ -317,7 +317,7 @@ function render(){
       <div class="thumb" id="thumb-${o.id}">${deleted?"写真削除済み":"画像を読み込み中…"}</div>
       <div class="body">
         <div class="top"><div class="num">${esc(o.shortId||o.id)}</div><span class="badge ${st}">${st}</span></div>
-        <div class="meta">${fmt(o.createdAt)}<br>${pLabel} ／ ${o.layoutLabel||""} ／ ${o.copies||1}枚 ／ ${money(o.totalPrice)}${expiry}</div>
+        <div class="meta">${fmt(o.createdAt)}<br>${pLabel} ／ ${o.layoutLabel||""} ／ ${o.copies||1}枚 ／ ${money(o.totalPrice)}${o.firstCopyFree?"（1枚目無料）":""}${expiry}</div>
         ${piiDeleted
           ? `<div class="pii-deleted">個人情報削除済み ${fmt(o.piiDeletedAt)}</div>`
           : `<div class="personal">
