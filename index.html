@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>2027 フォトカレンダー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#f7f9fb;
@@ -1866,7 +1869,7 @@ function drawYearTitle(mode, rects){
     ? (isA4 ? 76 : 108)
     : (isA4 ? 74 : 104);
 
-  ctx.font = `400 ${fontSize}px Georgia, serif`;
+  ctx.font = `400 ${fontSize}px "Baskerville", "Times New Roman", Georgia, "Yu Mincho", serif`;
   ctx.textBaseline = 'middle';
 
   if(mode.kind === 'portraitPhoto'){
@@ -1902,14 +1905,19 @@ function monthMatrix(year, month){
   return weeks;
 }
 
+const ENGLISH_MONTH_NAMES = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December"
+];
+
 function drawMonthBox(x, y, w, h, month, mode){
   ctx.save();
 
   const isA4 = mode.paper === 'A4';
-  const monthFont = isA4 ? 58 : 82;
-  const monthKanjiFont = isA4 ? 28 : 38;
-  const weekdayFont = isA4 ? 18 : 24;
-  const dateFont = isA4 ? 50 : 66; // A4でも約12pt相当以上
+  const monthFont = isA4 ? 62 : 86;
+  const monthKanjiFont = isA4 ? 25 : 34;
+  const weekdayFont = isA4 ? 17 : 23;
+  const dateFont = isA4 ? 48 : 64; // A4でも約12pt相当以上
   const headH = isA4 ? 82 : 108;
   const weekdayH = isA4 ? 28 : 38;
   const gridTop = y + headH + weekdayH + 8;
@@ -1920,8 +1928,8 @@ function drawMonthBox(x, y, w, h, month, mode){
   const cellH = (h - (gridTop-y) - (isA4 ? 8 : 12)) / 6;
 
   // 月名：装飾を抑えたシンプル表記
-  ctx.fillStyle = '#3f4245';
-  ctx.font = `400 ${monthFont}px Georgia, "Yu Mincho", serif`;
+  ctx.fillStyle = '#343434';
+  ctx.font = `400 ${monthFont}px "Baskerville", "Times New Roman", Georgia, "Yu Mincho", serif`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
 
@@ -1935,13 +1943,35 @@ function drawMonthBox(x, y, w, h, month, mode){
     ? (month >= 10 ? 18 : 10)
     : (month >= 10 ? 24 : 14);
 
-  ctx.fillStyle = '#6d7378';
-  ctx.font = `500 ${monthKanjiFont}px sans-serif`;
-  ctx.fillText(
-    '月',
-    x + monthNumberWidth + monthLabelGap,
-    y + (isA4 ? 28 : 39)
-  );
+  ctx.fillStyle = '#696969';
+  ctx.font = `400 ${monthKanjiFont}px "Yu Mincho", "Hiragino Mincho ProN", "Times New Roman", serif`;
+
+  const monthKanjiX = x + monthNumberWidth + monthLabelGap;
+  const monthKanjiY = y + (isA4 ? 28 : 39);
+  ctx.fillText('月', monthKanjiX, monthKanjiY);
+
+  // 「月」の右隣に英語月名を Dancing Script で添える
+  const monthKanjiWidth = ctx.measureText('月').width;
+  const englishMonth = ENGLISH_MONTH_NAMES[month - 1];
+  const englishGap = isA4 ? 10 : 14;
+  const englishX = monthKanjiX + monthKanjiWidth + englishGap;
+  const englishY = y + (isA4 ? 12 : 16);
+  const maxEnglishWidth = Math.max(40, x + w - englishX - (isA4 ? 4 : 8));
+
+  let englishFontSize = isA4 ? 40 : 56;
+  ctx.font = `500 ${englishFontSize}px "Dancing Script", cursive`;
+
+  const measuredEnglishWidth = ctx.measureText(englishMonth).width;
+  if(measuredEnglishWidth > maxEnglishWidth){
+    englishFontSize = Math.max(
+      isA4 ? 30 : 40,
+      Math.floor(englishFontSize * maxEnglishWidth / measuredEnglishWidth)
+    );
+    ctx.font = `500 ${englishFontSize}px "Dancing Script", cursive`;
+  }
+
+  ctx.fillStyle = '#4d4d4d';
+  ctx.fillText(englishMonth, englishX, englishY);
 
   // 月見出し下の細線
   ctx.strokeStyle = '#cfd3d6';
@@ -1952,7 +1982,7 @@ function drawMonthBox(x, y, w, h, month, mode){
   ctx.stroke();
 
   const weekdays = ['日','月','火','水','木','金','土'];
-  ctx.font = `500 ${weekdayFont}px sans-serif`;
+  ctx.font = `400 ${weekdayFont}px "Baskerville", "Times New Roman", "Yu Mincho", serif`;
   for(let i=0;i<7;i++){
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -1961,7 +1991,7 @@ function drawMonthBox(x, y, w, h, month, mode){
   }
 
   const weeks = monthMatrix(YEAR, month);
-  ctx.font = `500 ${dateFont}px sans-serif`;
+  ctx.font = `400 ${dateFont}px "Baskerville", "Times New Roman", "Yu Mincho", serif`;
 
   for(let r=0;r<6;r++){
     for(let c=0;c<7;c++){
@@ -2100,6 +2130,16 @@ function downloadPng(){
 
 syncCorrectionUI();
 draw();
+
+// Dancing Script の読み込み完了後に再描画。
+// 初回表示がフォールバック書体になっても、自動で正しい書体へ切り替わる。
+if(document.fonts){
+  Promise.all([
+    document.fonts.load('500 36px "Dancing Script"'),
+    document.fonts.ready
+  ]).then(()=>draw()).catch(()=>{});
+}
+
 loadShopSettings();
 ensureAnonymousUser().catch(err=>console.error("anonymous auth failed",err));
 </script>
