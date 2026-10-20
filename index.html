@@ -1084,7 +1084,7 @@ submitOrderBtn.addEventListener("click",async ()=>{
     const unitPrice=getUnitPrice();
 
     orderRef=doc(collection(db,"orders"));
-    const storagePath=`annual-calendar-orders/${user.uid}/${orderRef.id}.png`;
+    const storagePath=`annual-calendar-orders/${shopId}/${user.uid}/${orderRef.id}.png`;
 
     await setDoc(orderRef,{
       source:SOURCE,

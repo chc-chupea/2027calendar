@@ -151,8 +151,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 import { getStorage, ref, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js";
 import {
-  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  getAuth, signInWithCustomToken, signOut, onAuthStateChanged, getIdTokenResult
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-functions.js";
 
 const firebaseConfig={
   apiKey:"AIzaSyBKSYZgaSVTu-HO_lS1Tp2eFjSjMuOONNI",
@@ -164,7 +165,7 @@ const firebaseConfig={
   measurementId:"G-W4S3EKL9TY"
 };
 const app=initializeApp(firebaseConfig);
-const db=getFirestore(app), storage=getStorage(app), auth=getAuth(app);
+const db=getFirestore(app), storage=getStorage(app), auth=getAuth(app), functions=getFunctions(app,"asia-northeast1");
 const SOURCE="annual-photo-calendar-2027";
 const params=new URLSearchParams(location.search);
 const shopId=(params.get("shop")||"main").replace(/[^a-zA-Z0-9_-]/g,"")||"main";
@@ -195,22 +196,6 @@ async function loadSettings(){
   document.title=`${shopSettings.shopName||"営業所"}｜2027カレンダー管理`;
 }
 
-let adminLoginEmail="";
-
-function firebasePasswordFromPin(pin){
-  return `CAL2027-${shopId}-${pin}`;
-}
-
-async function loadPublicLoginSetting(){
-  try{
-    const s=await getDoc(doc(db,"settings",shopId));
-    if(s.exists()){
-      shopSettings={...shopSettings,...s.data()};
-      adminLoginEmail=String(s.data().adminLoginEmail||"").trim().toLowerCase();
-    }
-  }catch(e){console.error(e)}
-}
-
 document.getElementById("loginBtn").onclick=async()=>{
   const pin=document.getElementById("password").value.trim();
   const msg=document.getElementById("loginMsg");
@@ -219,18 +204,20 @@ document.getElementById("loginBtn").onclick=async()=>{
     msg.textContent="数字4桁で入力してください。";
     return;
   }
-  if(!adminLoginEmail){
-    msg.textContent="管理用ログイン設定がありません。settings.htmlで設定してください。";
-    return;
-  }
 
   msg.textContent="確認中…";
   try{
-    await signInWithEmailAndPassword(auth,adminLoginEmail,firebasePasswordFromPin(pin));
+    const login=httpsCallable(functions,"loginAnnual2027Admin");
+    const result=await login({shopId,pin});
+    const token=result.data?.token;
+    if(!token) throw new Error("token-not-returned");
+    await signInWithCustomToken(auth,token);
     msg.textContent="";
   }catch(e){
     console.error(e);
-    msg.textContent="4桁の管理パスワードが違います。";
+    msg.textContent=e?.code==="functions/resource-exhausted"
+      ?"入力回数が多いため、しばらく待ってからお試しください。"
+      :"4桁PINが違います。";
   }
 };
 document.getElementById("password").addEventListener("keydown",e=>{
@@ -238,16 +225,28 @@ document.getElementById("password").addEventListener("keydown",e=>{
 });
 document.getElementById("logoutBtn").onclick=()=>signOut(auth);
 
-await loadPublicLoginSetting();
-
 onAuthStateChanged(auth,async user=>{
-  const staff=!!user && !!user.email;
-  document.getElementById("loginPanel").classList.toggle("hidden",staff);
-  document.getElementById("appPanel").classList.toggle("hidden",!staff);
-  document.getElementById("logoutBtn").classList.toggle("hidden",!staff);
-  document.getElementById("cleanupBtn").classList.toggle("hidden",!staff);
-  if(staff){await loadSettings();startWatch()}
-  else if(unsub){unsub();unsub=null}
+  let allowed=false;
+  if(user){
+    try{
+      const token=await getIdTokenResult(user,true);
+      allowed =
+        (token.claims.role==="annual2027Admin" && token.claims.shopId===shopId) ||
+        (user.email && user.email.toLowerCase()==="sp-fureai@soleil.ocn.ne.jp");
+    }catch(e){ console.error(e); }
+  }
+
+  document.getElementById("loginPanel").classList.toggle("hidden",allowed);
+  document.getElementById("appPanel").classList.toggle("hidden",!allowed);
+  document.getElementById("logoutBtn").classList.toggle("hidden",!allowed);
+  document.getElementById("cleanupBtn").classList.toggle("hidden",!allowed);
+
+  if(allowed){
+    await loadSettings();
+    startWatch();
+  }else if(unsub){
+    unsub(); unsub=null;
+  }
 });
 
 function updateAutoUI(){
