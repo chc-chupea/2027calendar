@@ -1111,7 +1111,12 @@ document.querySelectorAll('.layout-btn').forEach(btn=>{
     draw();
   });
 });
-paperSize.addEventListener('change', ()=>{ fitPhoto(); draw(); });
+paperSize.addEventListener('change', ()=>{
+  // A4⇄A3は同じA判比率なので、写真の拡大率・位置・回転を維持する
+  // drawPhotoRect() 側で新しい用紙サイズに合わせて baseScale を再計算するため、
+  // fitPhoto() は呼ばない。
+  draw();
+});
 layoutType.addEventListener('change', ()=>{
   document.querySelectorAll('.layout-btn').forEach(b=>b.classList.toggle('active', b.dataset.layout===layoutType.value));
   fitPhoto();
@@ -2031,7 +2036,7 @@ function drawReceiptNumber(mode){
 
   // 左下から約5mm内側。縦写真向けだけは写真とかぶらないよう、さらに約2mm下へ。
   const extraInset = 59; // 約5mm（300dpi換算）
-  const portraitDownShift = mode.kind === 'portraitPhoto' ? 48 : 0; // 約2mm下へ
+  const portraitDownShift = mode.kind === 'portraitPhoto' ? 48 : 0; // 合計約4mm下へ
   const left = (mode.paper === 'A4' ? 38 : 56) + extraInset;
   const bottom = ((mode.paper === 'A4' ? 22 : 32) + extraInset) - portraitDownShift;
   const fontSize = mode.paper === 'A4' ? 22 : 31;
