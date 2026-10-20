@@ -2031,7 +2031,7 @@ function drawReceiptNumber(mode){
 
   // 左下から約5mm内側。縦写真向けだけは写真とかぶらないよう、さらに約2mm下へ。
   const extraInset = 59; // 約5mm（300dpi換算）
-  const portraitDownShift = mode.kind === 'portraitPhoto' ? 24 : 0; // 約2mm下へ
+  const portraitDownShift = mode.kind === 'portraitPhoto' ? 48 : 0; // 約2mm下へ
   const left = (mode.paper === 'A4' ? 38 : 56) + extraInset;
   const bottom = ((mode.paper === 'A4' ? 22 : 32) + extraInset) - portraitDownShift;
   const fontSize = mode.paper === 'A4' ? 22 : 31;
