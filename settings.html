@@ -18,9 +18,9 @@ button{border:0;border-radius:8px;padding:12px 14px;font-weight:900;cursor:point
   <div class="card"><h1>2027カレンダー｜営業所設定</h1><p>オーナーが営業所ごとの受付URL・料金・アンケート・4桁PINを設定します。</p></div>
 
   <div id="loginCard" class="card">
-    <h2>オーナーログイン</h2><div class="msg">4桁PINまたはFirebaseで再設定したパスワードでログインできます。</div>
-    <input id="email" type="email" placeholder="メールアドレス">
-    <input id="password" type="password" placeholder="Firebaseのオーナーパスワード" style="margin-top:8px">
+    <h2>オーナーログイン</h2><div class="msg">Firebase Authenticationに登録したオーナー用パスワードでログインしてください。</div>
+    <input id="email" type="email" value="sp-fureai@soleil.ocn.ne.jp" readonly>
+    <input id="password" type="password" placeholder="オーナー用Firebaseパスワード" style="margin-top:8px">
     <button id="loginBtn" class="primary" style="margin-top:10px">ログイン</button>
     <div id="loginMsg" class="msg"></div>
   </div>
