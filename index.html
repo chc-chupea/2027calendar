@@ -1919,11 +1919,24 @@ function drawMonthBox(x, y, w, h, month, mode){
   ctx.font = `400 ${monthFont}px Georgia, "Yu Mincho", serif`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  ctx.fillText(String(month), x, y + 2);
+
+  // 月番号の実際の文字幅を測り、「月」をその右側へ配置する。
+  // 10月・11月・12月でも数字と「月」が重ならない。
+  const monthText = String(month);
+  ctx.fillText(monthText, x, y + 2);
+  const monthNumberWidth = ctx.measureText(monthText).width;
+  // 2桁月（10〜12月）は「月」を少し右へ逃がして重なりを防ぐ
+  const monthLabelGap = isA4
+    ? (month >= 10 ? 18 : 10)
+    : (month >= 10 ? 24 : 14);
 
   ctx.fillStyle = '#6d7378';
   ctx.font = `500 ${monthKanjiFont}px sans-serif`;
-  ctx.fillText('月', x + (isA4 ? 50 : 72), y + (isA4 ? 28 : 39));
+  ctx.fillText(
+    '月',
+    x + monthNumberWidth + monthLabelGap,
+    y + (isA4 ? 28 : 39)
+  );
 
   // 月見出し下の細線
   ctx.strokeStyle = '#cfd3d6';
@@ -2016,8 +2029,10 @@ function drawReceiptNumber(mode){
 
   ctx.save();
 
-  const left = mode.paper === 'A4' ? 38 : 56;
-  const bottom = mode.paper === 'A4' ? 22 : 32;
+  // 受付番号を印刷欠けしにくいよう、左下から約5mm内側へ移動
+  const extraInset = 59; // 約5mm（300dpi換算）
+  const left = (mode.paper === 'A4' ? 38 : 56) + extraInset;
+  const bottom = (mode.paper === 'A4' ? 22 : 32) + extraInset;
   const fontSize = mode.paper === 'A4' ? 22 : 31;
 
   ctx.font = `700 ${fontSize}px sans-serif`;
