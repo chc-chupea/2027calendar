@@ -1915,9 +1915,8 @@ function drawMonthBox(x, y, w, h, month, mode){
 
   const isA4 = mode.paper === 'A4';
   const monthFont = isA4 ? 62 : 86;
-  const monthKanjiFont = isA4 ? 25 : 34;
-  const weekdayFont = isA4 ? 17 : 23;
-  const dateFont = isA4 ? 48 : 64; // A4でも約12pt相当以上
+  const weekdayFont = isA4 ? 19 : 25;
+  const dateFont = isA4 ? 52 : 68; // A4でも約12pt相当以上
   const headH = isA4 ? 82 : 108;
   const weekdayH = isA4 ? 28 : 38;
   const gridTop = y + headH + weekdayH + 8;
@@ -1927,50 +1926,42 @@ function drawMonthBox(x, y, w, h, month, mode){
   const cellW = innerW / 7;
   const cellH = (h - (gridTop-y) - (isA4 ? 8 : 12)) / 6;
 
-  // 月名：装飾を抑えたシンプル表記
-  ctx.fillStyle = '#343434';
-  ctx.font = `400 ${monthFont}px "Baskerville", "Times New Roman", Georgia, "Yu Mincho", serif`;
+  // 月名：数字＋英語表記のみ
+  ctx.fillStyle = '#2f2f2f';
+  ctx.font = `700 ${monthFont}px "Baskerville", "Times New Roman", Georgia, "Yu Mincho", serif`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
 
-  // 月番号の実際の文字幅を測り、「月」をその右側へ配置する。
-  // 10月・11月・12月でも数字と「月」が重ならない。
   const monthText = String(month);
-  ctx.fillText(monthText, x, y + 2);
+
+  // よこ写真用は、月見出しをカレンダーの「日曜日」列の真上あたりへ寄せる。
+  // これにより左への飛び出しを抑え、月と月の間に余白を作る。
+  const monthLabelX = mode.kind === 'landscapePhoto'
+    ? innerX + cellW * 0.02
+    : x;
+
+  ctx.fillText(monthText, monthLabelX, y + 2);
   const monthNumberWidth = ctx.measureText(monthText).width;
-  // 2桁月（10〜12月）は「月」を少し右へ逃がして重なりを防ぐ
-  const monthLabelGap = isA4
-    ? (month >= 10 ? 18 : 10)
-    : (month >= 10 ? 24 : 14);
 
-  ctx.fillStyle = '#696969';
-  ctx.font = `400 ${monthKanjiFont}px "Yu Mincho", "Hiragino Mincho ProN", "Times New Roman", serif`;
-
-  const monthKanjiX = x + monthNumberWidth + monthLabelGap;
-  const monthKanjiY = y + (isA4 ? 28 : 39);
-  ctx.fillText('月', monthKanjiX, monthKanjiY);
-
-  // 「月」の右隣に英語月名を Dancing Script で添える
-  const monthKanjiWidth = ctx.measureText('月').width;
   const englishMonth = ENGLISH_MONTH_NAMES[month - 1];
-  const englishGap = isA4 ? 10 : 14;
-  const englishX = monthKanjiX + monthKanjiWidth + englishGap;
-  const englishY = y + (isA4 ? 12 : 16);
+  const englishGap = isA4 ? 16 : 22;
+  const englishX = monthLabelX + monthNumberWidth + englishGap;
+  const englishY = y + (isA4 ? 10 : 14);
   const maxEnglishWidth = Math.max(40, x + w - englishX - (isA4 ? 4 : 8));
 
-  let englishFontSize = isA4 ? 40 : 56;
-  ctx.font = `500 ${englishFontSize}px "Dancing Script", cursive`;
+  let englishFontSize = isA4 ? 52 : 70;
+  ctx.font = `700 ${englishFontSize}px "Dancing Script", cursive`;
 
   const measuredEnglishWidth = ctx.measureText(englishMonth).width;
   if(measuredEnglishWidth > maxEnglishWidth){
     englishFontSize = Math.max(
-      isA4 ? 30 : 40,
+      isA4 ? 38 : 50,
       Math.floor(englishFontSize * maxEnglishWidth / measuredEnglishWidth)
     );
-    ctx.font = `500 ${englishFontSize}px "Dancing Script", cursive`;
+    ctx.font = `700 ${englishFontSize}px "Dancing Script", cursive`;
   }
 
-  ctx.fillStyle = '#4d4d4d';
+  ctx.fillStyle = '#434343';
   ctx.fillText(englishMonth, englishX, englishY);
 
   // 月見出し下の細線
@@ -1982,7 +1973,7 @@ function drawMonthBox(x, y, w, h, month, mode){
   ctx.stroke();
 
   const weekdays = ['日','月','火','水','木','金','土'];
-  ctx.font = `400 ${weekdayFont}px "Baskerville", "Times New Roman", "Yu Mincho", serif`;
+  ctx.font = `600 ${weekdayFont}px "Baskerville", "Times New Roman", "Yu Mincho", serif`;
   for(let i=0;i<7;i++){
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -1991,7 +1982,7 @@ function drawMonthBox(x, y, w, h, month, mode){
   }
 
   const weeks = monthMatrix(YEAR, month);
-  ctx.font = `400 ${dateFont}px "Baskerville", "Times New Roman", "Yu Mincho", serif`;
+  ctx.font = `600 ${dateFont}px "Baskerville", "Times New Roman", "Yu Mincho", serif`;
 
   for(let r=0;r<6;r++){
     for(let c=0;c<7;c++){
@@ -2135,7 +2126,7 @@ draw();
 // 初回表示がフォールバック書体になっても、自動で正しい書体へ切り替わる。
 if(document.fonts){
   Promise.all([
-    document.fonts.load('500 36px "Dancing Script"'),
+    document.fonts.load('700 52px "Dancing Script"'),
     document.fonts.ready
   ]).then(()=>draw()).catch(()=>{});
 }
