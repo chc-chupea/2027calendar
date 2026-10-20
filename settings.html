@@ -1,26 +1,66 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>2027カレンダー｜営業所設定</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;background:#f5f7f9;color:#29323a}
-.wrap{max-width:760px;margin:30px auto;padding:0 14px}.card{background:#fff;border:1px solid #dfe5ea;border-radius:12px;padding:20px;margin-bottom:14px}
-h1{font-size:22px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}
-label{display:grid;gap:6px;font-size:12px;font-weight:800;color:#56616b}input,textarea,select{width:100%;padding:12px;border:1px solid #dfe5ea;border-radius:8px;font:inherit;background:#fff}textarea{min-height:110px}
-button{border:0;border-radius:8px;padding:12px 14px;font-weight:900;cursor:pointer}.primary{background:#4f8fc7;color:#fff}.ghost{background:#fff;border:1px solid #dfe5ea;color:#53606a}
-.links{display:grid;gap:9px;margin-top:12px}.url{background:#f7f9fb;padding:10px;border-radius:7px;font-size:12px;word-break:break-all}
-.hidden{display:none}.msg{font-size:12px;color:#6f7982;margin-top:8px}
-@media(max-width:640px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;
+  background:#f5f7f9;color:#29323a
+}
+.wrap{max-width:760px;margin:30px auto;padding:0 14px}
+.card{
+  background:#fff;border:1px solid #dfe5ea;border-radius:12px;
+  padding:20px;margin-bottom:14px
+}
+h1{font-size:22px;margin:0 0 10px}
+h2{font-size:21px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.full{grid-column:1/-1}
+label{display:grid;gap:6px;font-size:12px;font-weight:800;color:#56616b}
+input,textarea,select{
+  width:100%;padding:12px;border:1px solid #dfe5ea;border-radius:8px;
+  font:inherit;background:#fff;color:#29323a
+}
+textarea{min-height:110px}
+button{
+  border:0;border-radius:8px;padding:12px 14px;font-weight:900;cursor:pointer
+}
+.primary{background:#4f8fc7;color:#fff}
+.ghost{background:#fff;border:1px solid #dfe5ea;color:#53606a}
+.links{display:grid;gap:9px;margin-top:16px}
+.url{background:#f7f9fb;padding:10px;border-radius:7px;font-size:12px;word-break:break-all}
+.hidden{display:none!important}
+.msg{font-size:12px;color:#6f7982;margin-top:8px;line-height:1.5}
+.owner-note{
+  padding:10px 12px;background:#f7fbfe;border:1px solid #dce7ef;
+  border-radius:8px;font-size:12px;color:#526d81;line-height:1.6;margin-bottom:10px
+}
+@media(max-width:640px){
+  .grid{grid-template-columns:1fr}
+  .full{grid-column:auto}
+}
 </style>
-</head><body>
+</head>
+<body>
 <div class="wrap">
-  <div class="card"><h1>2027カレンダー｜営業所設定</h1><p>オーナーが営業所ごとの受付URL・料金・アンケート・4桁PINを設定します。</p></div>
+  <div class="card">
+    <h1>2027カレンダー｜営業所設定</h1>
+    <p>オーナーが営業所ごとの受付URL・料金・アンケート・4桁PINを設定します。</p>
+  </div>
 
   <div id="loginCard" class="card">
-    <h2>オーナーログイン</h2><div class="msg">Firebase Authenticationに登録したオーナー用パスワードでログインしてください。</div>
+    <h2>オーナーログイン</h2>
+    <div class="owner-note">
+      Firebase Authenticationに登録したオーナー用パスワードでログインしてください。<br>
+      営業所用4桁PINとは別です。
+    </div>
     <input id="email" type="email" value="sp-fureai@soleil.ocn.ne.jp" readonly>
-    <input id="password" type="password" placeholder="オーナー用Firebaseパスワード" style="margin-top:8px">
+    <input id="password" type="password" autocomplete="current-password"
+           placeholder="オーナー用Firebaseパスワード" style="margin-top:8px">
     <button id="loginBtn" class="primary" style="margin-top:10px">ログイン</button>
     <div id="loginMsg" class="msg"></div>
   </div>
@@ -28,32 +68,41 @@ button{border:0;border-radius:8px;padding:12px 14px;font-weight:900;cursor:point
   <div id="settingsCard" class="card hidden">
     <div class="grid">
       <label>営業所ID
-        <input id="shopIdInput" placeholder="例：hatsukaichi-east">
+        <input id="shopIdInput" placeholder="例：hatsukaichi-north">
       </label>
+
       <label>営業所コード
         <input id="shopCode" maxlength="4" placeholder="例：H">
       </label>
-      <label>営業所管理画面 4桁PIN
-        <input id="adminPin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="例：1234">
-      </label>
+
       <label class="full">営業所名
-        <input id="shopName" placeholder="例：廿日市東営業所">
+        <input id="shopName" placeholder="例：廿日市北営業所">
       </label>
+
       <label>A4料金（税込）
         <input id="a4Price" type="number" min="0" step="10">
       </label>
+
       <label>A3料金（税込）
         <input id="a3Price" type="number" min="0" step="10">
       </label>
+
       <label class="full">料金のかけ方
         <select id="pricingMode">
           <option value="firstFree">1枚目無料（2枚目から有料）</option>
           <option value="allPaid">1枚目から有料</option>
         </select>
       </label>
+
+      <label class="full">営業所管理画面 4桁PIN
+        <input id="adminPin" type="password" inputmode="numeric"
+               maxlength="4" pattern="[0-9]{4}" placeholder="例：1234">
+      </label>
+
       <label class="full">アンケート質問
         <input id="surveyQuestion">
       </label>
+
       <label class="full">アンケート選択肢（1行に1つ）
         <textarea id="surveyOptions"></textarea>
       </label>
@@ -74,21 +123,61 @@ button{border:0;border-radius:8px;padding:12px 14px;font-weight:900;cursor:point
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
-import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-functions.js";
+import {
+  getFirestore, doc, getDoc, setDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+import {
+  getFunctions, httpsCallable
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-functions.js";
 
-const firebaseConfig={apiKey:"AIzaSyBKSYZgaSVTu-HO_lS1Tp2eFjSjMuOONNI",authDomain:"my-uchiwa-queue.firebaseapp.com",projectId:"my-uchiwa-queue",storageBucket:"my-uchiwa-queue.firebasestorage.app",messagingSenderId:"245883628081",appId:"1:245883628081:web:ab7f00f01ba256ebca8310",measurementId:"G-W4S3EKL9TY"};
-const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app),functions=getFunctions(app,"asia-northeast1");
+const firebaseConfig={
+  apiKey:"AIzaSyBKSYZgaSVTu-HO_lS1Tp2eFjSjMuOONNI",
+  authDomain:"my-uchiwa-queue.firebaseapp.com",
+  projectId:"my-uchiwa-queue",
+  storageBucket:"my-uchiwa-queue.firebasestorage.app",
+  messagingSenderId:"245883628081",
+  appId:"1:245883628081:web:ab7f00f01ba256ebca8310",
+  measurementId:"G-W4S3EKL9TY"
+};
+
+const OWNER_EMAIL="sp-fureai@soleil.ocn.ne.jp";
+const $=id=>document.getElementById(id);
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+const auth=getAuth(app);
+const functions=getFunctions(app,"asia-northeast1");
+
+const params=new URLSearchParams(location.search);
+let shopId=(params.get("shop")||"main").replace(/[^a-zA-Z0-9_-]/g,"")||"main";
+
+const defaults={
+  shopName:"カレンダー受付営業所",
+  shopCode:"C",
+  a4Price:0,
+  a3Price:0,
+  pricingMode:"allPaid",
+  surveyQuestion:"このカレンダー企画をどこで知りましたか？",
+  surveyOptions:["新聞折込","営業所からの案内","家族・知人","その他"]
+};
 
 $("loginBtn").onclick=async()=>{
   const email=$("email").value.trim().toLowerCase();
   const password=$("password").value;
   $("loginMsg").textContent="確認中…";
-  if(email!=="sp-fureai@soleil.ocn.ne.jp"){
+
+  if(email!==OWNER_EMAIL){
     $("loginMsg").textContent="この画面はオーナー専用です。";
     return;
   }
+  if(!password){
+    $("loginMsg").textContent="パスワードを入力してください。";
+    return;
+  }
+
   try{
     await signInWithEmailAndPassword(auth,email,password);
     $("loginMsg").textContent="";
@@ -97,81 +186,110 @@ $("loginBtn").onclick=async()=>{
     $("loginMsg").textContent=`ログインできませんでした。${e?.code?`（${e.code}）`:""}`;
   }
 };
-$("logoutBtn").onclick=()=>signOut(auth);
 
-onAuthStateChanged(auth,async u=>{
- const ok=!!u?.email && u.email.toLowerCase()==="sp-fureai@soleil.ocn.ne.jp";
- $("loginCard").classList.toggle("hidden",ok);
- $("settingsCard").classList.toggle("hidden",!ok);
- if(ok) await load();
- else if(u) await signOut(auth);
+$("password").addEventListener("keydown",e=>{
+  if(e.key==="Enter") $("loginBtn").click();
 });
 
-async function load(){
- $("shopIdInput").value=shopId;
- try{
-  const s=await getDoc(doc(db,"settings",shopId));
-  const x=s.exists()?{...d,...s.data()}:{...d};
-  $("shopName").value=x.shopName||"";
-  $("shopCode").value=x.shopCode||"C";
-  $("a4Price").value=Number(x.a4Price||0);
-  $("a3Price").value=Number(x.a3Price||0);
-  $("pricingMode").value=x.pricingMode||"allPaid";
-  $("surveyQuestion").value=x.surveyQuestion||d.surveyQuestion;
-  $("surveyOptions").value=(x.surveyOptions||d.surveyOptions).join("\n");
-}catch(e){console.error(e)}
- renderUrls();
+$("logoutBtn").onclick=()=>signOut(auth);
+
+onAuthStateChanged(auth,async user=>{
+  const isOwner=!!user?.email && user.email.toLowerCase()===OWNER_EMAIL;
+
+  $("loginCard").classList.toggle("hidden",isOwner);
+  $("settingsCard").classList.toggle("hidden",!isOwner);
+
+  if(isOwner){
+    await loadSettings();
+  }else if(user){
+    await signOut(auth);
+  }
+});
+
+async function loadSettings(){
+  $("shopIdInput").value=shopId;
+
+  try{
+    const snap=await getDoc(doc(db,"settings",shopId));
+    const data=snap.exists()?{...defaults,...snap.data()}:{...defaults};
+
+    $("shopName").value=data.shopName||"";
+    $("shopCode").value=data.shopCode||"C";
+    $("a4Price").value=Number(data.a4Price||0);
+    $("a3Price").value=Number(data.a3Price||0);
+    $("pricingMode").value=data.pricingMode||"allPaid";
+    $("surveyQuestion").value=data.surveyQuestion||defaults.surveyQuestion;
+    $("surveyOptions").value=(data.surveyOptions||defaults.surveyOptions).join("\n");
+    $("adminPin").value="";
+  }catch(e){
+    console.error(e);
+    $("msg").textContent=`設定の読み込みに失敗しました。${e?.code?`（${e.code}）`:""}`;
+  }
+
+  renderUrls();
 }
+
+function currentShopId(){
+  return ($("shopIdInput").value.trim()||"main")
+    .replace(/[^a-zA-Z0-9_-]/g,"")||"main";
+}
+
 function renderUrls(){
- const id=($("shopIdInput").value.trim()||"main").replace(/[^a-zA-Z0-9_-]/g,"")||"main";
- const base=new URL(".",location.href);
- $("customerUrl").textContent=new URL(`index.html?shop=${id}`,base).href;
- $("adminUrl").textContent=new URL(`admin.html?shop=${id}`,base).href;
- $("settingsUrl").textContent=new URL(`settings.html?shop=${id}`,base).href;
+  const id=currentShopId();
+  const base=new URL(".",location.href);
+
+  $("customerUrl").textContent=new URL(`index.html?shop=${id}`,base).href;
+  $("adminUrl").textContent=new URL(`admin.html?shop=${id}`,base).href;
+  $("settingsUrl").textContent=new URL(`settings.html?shop=${id}`,base).href;
 }
+
 $("shopIdInput").addEventListener("input",renderUrls);
 
 $("saveBtn").onclick=async()=>{
- const id=($("shopIdInput").value.trim()||"main").replace(/[^a-zA-Z0-9_-]/g,"")||"main";
- const opts=$("surveyOptions").value.split("\n").map(x=>x.trim()).filter(Boolean);
- const pin=$("adminPin").value.trim();
+  const id=currentShopId();
+  const pin=$("adminPin").value.trim();
+  const options=$("surveyOptions").value
+    .split("\n").map(v=>v.trim()).filter(Boolean);
 
- if(pin && !/^\d{4}$/.test(pin)){
-   $("msg").textContent="営業所管理PINは数字4桁で入力してください。";
-   return;
- }
-
- $("msg").textContent="保存中…";
- try{
-  await setDoc(doc(db,"settings",id),{
-   shopId:id,
-   shopName:$("shopName").value.trim()||d.shopName,
-   shopCode:($("shopCode").value.trim()||"C").toUpperCase(),
-   a4Price:Number($("a4Price").value||0),
-   a3Price:Number($("a3Price").value||0),
-   pricingMode:$("pricingMode").value||"allPaid",
-   surveyQuestion:$("surveyQuestion").value.trim()||d.surveyQuestion,
-   surveyOptions:opts.length?opts:d.surveyOptions,
-   annualCalendar2027Enabled:true,
-   updatedAt:serverTimestamp()
-  },{merge:true});
-
-  if(pin){
-    const setPin=httpsCallable(functions,"setAnnual2027AdminPin");
-    await setPin({shopId:id,pin});
+  if(pin && !/^\d{4}$/.test(pin)){
+    $("msg").textContent="営業所管理PINは数字4桁で入力してください。";
+    return;
   }
 
-  shopId=id;
-  history.replaceState(null,"",`?shop=${encodeURIComponent(id)}`);
-  $("msg").textContent=pin
-    ?"保存しました。営業所管理画面は設定した4桁PINで開けます。"
-    :"保存しました。";
-  $("adminPin").value="";
-  renderUrls();
- }catch(e){
-  console.error(e);
-  $("msg").textContent=`保存できませんでした。${e?.code?`（${e.code}）`:""}`;
- }
+  $("msg").textContent="保存中…";
+
+  try{
+    await setDoc(doc(db,"settings",id),{
+      shopId:id,
+      shopName:$("shopName").value.trim()||defaults.shopName,
+      shopCode:($("shopCode").value.trim()||"C").toUpperCase(),
+      a4Price:Number($("a4Price").value||0),
+      a3Price:Number($("a3Price").value||0),
+      pricingMode:$("pricingMode").value||"allPaid",
+      surveyQuestion:$("surveyQuestion").value.trim()||defaults.surveyQuestion,
+      surveyOptions:options.length?options:defaults.surveyOptions,
+      annualCalendar2027Enabled:true,
+      updatedAt:serverTimestamp()
+    },{merge:true});
+
+    if(pin){
+      const setPin=httpsCallable(functions,"setAnnual2027AdminPin");
+      await setPin({shopId:id,pin});
+    }
+
+    shopId=id;
+    history.replaceState(null,"",`?shop=${encodeURIComponent(id)}`);
+    $("adminPin").value="";
+    $("msg").textContent=pin
+      ?"保存しました。営業所管理画面は設定した4桁PINで開けます。"
+      :"保存しました。";
+    renderUrls();
+
+  }catch(e){
+    console.error(e);
+    $("msg").textContent=`保存できませんでした。${e?.code?`（${e.code}）`:""}`;
+  }
 };
 </script>
-</body></html>
+</body>
+</html>
