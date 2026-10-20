@@ -43,6 +43,101 @@ button{
   .grid{grid-template-columns:1fr}
   .full{grid-column:auto}
 }
+
+.shop-list-box{
+  margin-bottom:14px;
+  padding:16px;
+  border:1px solid #dfe5ea;
+  border-radius:12px;
+  background:#fff;
+}
+.shop-list-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+.shop-list-head h2{
+  margin:0;
+  font-size:18px;
+}
+.shop-count{
+  font-size:12px;
+  color:#6f7982;
+}
+.shop-list{
+  display:grid;
+  gap:8px;
+}
+.shop-item{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  padding:11px 12px;
+  border:1px solid #e3e8ec;
+  border-radius:9px;
+  background:#fafbfd;
+}
+.shop-item.current{
+  border-color:#7db2df;
+  background:#f2f8fd;
+}
+.shop-main{
+  min-width:0;
+}
+.shop-name{
+  font-size:14px;
+  font-weight:900;
+  color:#29323a;
+  line-height:1.35;
+}
+.shop-meta{
+  margin-top:3px;
+  font-size:11px;
+  color:#74808a;
+  line-height:1.45;
+  word-break:break-all;
+}
+.shop-open{
+  white-space:nowrap;
+  padding:9px 11px;
+  font-size:12px;
+  background:#fff;
+  color:#3f6f98;
+  border:1px solid #b9d2e6;
+}
+.shop-open:hover{
+  background:#eef6fc;
+}
+.list-msg{
+  padding:12px;
+  border-radius:8px;
+  background:#f7f9fb;
+  color:#6f7982;
+  font-size:12px;
+}
+.editing-badge{
+  display:inline-block;
+  margin-left:6px;
+  padding:2px 7px;
+  border-radius:999px;
+  background:#4f8fc7;
+  color:#fff;
+  font-size:10px;
+  vertical-align:middle;
+}
+@media(max-width:640px){
+  .shop-list-box{padding:13px}
+  .shop-item{
+    grid-template-columns:1fr;
+  }
+  .shop-open{
+    width:100%;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -63,6 +158,16 @@ button{
            placeholder="オーナー用Firebaseパスワード" style="margin-top:8px">
     <button id="loginBtn" class="primary" style="margin-top:10px">ログイン</button>
     <div id="loginMsg" class="msg"></div>
+  </div>
+
+  <div id="shopListBox" class="shop-list-box hidden">
+    <div class="shop-list-head">
+      <h2>登録済み営業所</h2>
+      <span id="shopCount" class="shop-count"></span>
+    </div>
+    <div id="shopList" class="shop-list">
+      <div class="list-msg">営業所一覧を読み込み中…</div>
+    </div>
   </div>
 
   <div id="settingsCard" class="card hidden">
@@ -124,7 +229,7 @@ button{
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import {
-  getFirestore, doc, getDoc, setDoc, serverTimestamp
+  getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, getDocs
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
@@ -198,13 +303,121 @@ onAuthStateChanged(auth,async user=>{
 
   $("loginCard").classList.toggle("hidden",isOwner);
   $("settingsCard").classList.toggle("hidden",!isOwner);
+  $("shopListBox").classList.toggle("hidden",!isOwner);
 
   if(isOwner){
+    await loadShopList();
     await loadSettings();
   }else if(user){
     await signOut(auth);
   }
 });
+
+
+function yen(v){
+  return `¥${Number(v||0).toLocaleString("ja-JP")}`;
+}
+
+function pricingLabel(mode){
+  return mode==="firstFree" ? "1枚目無料" : "1枚目から有料";
+}
+
+async function loadShopList(){
+  const box=$("shopList");
+  const countEl=$("shopCount");
+  box.innerHTML='<div class="list-msg">営業所一覧を読み込み中…</div>';
+  countEl.textContent="";
+
+  try{
+    const snap=await getDocs(collection(db,"settings"));
+    const shops=[];
+
+    snap.forEach(docSnap=>{
+      const data=docSnap.data()||{};
+      // 2027年間カレンダーで保存された営業所のみ表示
+      if(data.annualCalendar2027Enabled===true){
+        shops.push({
+          id:docSnap.id,
+          shopName:data.shopName||docSnap.id,
+          shopCode:data.shopCode||"",
+          a4Price:Number(data.a4Price||0),
+          a3Price:Number(data.a3Price||0),
+          pricingMode:data.pricingMode||"allPaid"
+        });
+      }
+    });
+
+    shops.sort((a,b)=>
+      String(a.shopName).localeCompare(String(b.shopName),"ja")
+    );
+
+    countEl.textContent=`${shops.length}営業所`;
+
+    if(!shops.length){
+      box.innerHTML='<div class="list-msg">登録済み営業所はまだありません。</div>';
+      return;
+    }
+
+    box.innerHTML=shops.map(s=>{
+      const current=s.id===shopId;
+      return `
+        <div class="shop-item ${current?"current":""}" data-shop-id="${escapeHtml(s.id)}">
+          <div class="shop-main">
+            <div class="shop-name">
+              ${escapeHtml(s.shopName)}
+              ${current?'<span class="editing-badge">編集中</span>':""}
+            </div>
+            <div class="shop-meta">
+              ID：${escapeHtml(s.id)}
+              ${s.shopCode?` ／ コード：${escapeHtml(s.shopCode)}`:""}
+              ／ A4 ${yen(s.a4Price)} ／ A3 ${yen(s.a3Price)}
+              ／ ${pricingLabel(s.pricingMode)}
+            </div>
+          </div>
+          <button class="shop-open" type="button" data-open-shop="${escapeHtml(s.id)}">
+            設定を開く
+          </button>
+        </div>
+      `;
+    }).join("");
+
+  }catch(e){
+    console.error(e);
+    box.innerHTML=`<div class="list-msg">営業所一覧を読み込めませんでした。${e?.code?`（${escapeHtml(e.code)}）`:""}</div>`;
+  }
+}
+
+async function openShop(id){
+  const safe=(id||"").replace(/[^a-zA-Z0-9_-]/g,"");
+  if(!safe) return;
+
+  shopId=safe;
+  history.replaceState(null,"",`?shop=${encodeURIComponent(shopId)}`);
+  await loadSettings();
+  await loadShopList();
+
+  $("settingsCard").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+$("shopList").addEventListener("click",async e=>{
+  const btn=e.target.closest("[data-open-shop]");
+  if(!btn) return;
+  btn.disabled=true;
+  try{
+    await openShop(btn.dataset.openShop);
+  }finally{
+    btn.disabled=false;
+  }
+});
+
+function escapeHtml(value){
+  return String(value??"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
 
 async function loadSettings(){
   $("shopIdInput").value=shopId;
@@ -284,6 +497,7 @@ $("saveBtn").onclick=async()=>{
       ?"保存しました。営業所管理画面は設定した4桁PINで開けます。"
       :"保存しました。";
     renderUrls();
+    await loadShopList();
 
   }catch(e){
     console.error(e);
