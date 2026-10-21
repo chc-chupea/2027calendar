@@ -238,6 +238,11 @@
   .order-status.sending{display:block;background:#fff8e9;color:#765716;border:1px solid #f0dfb8}
   .order-status.success{display:block;background:#eef8f2;color:#286243;border:1px solid #cfe6d8}
   .order-status.error{display:block;background:#fff1ef;color:#9c3028;border:1px solid #efcac5}
+  .upload-progress{margin-top:11px}
+  .upload-progress-track{height:10px;overflow:hidden;border-radius:20px;background:#e8ddc6}
+  .upload-progress-fill{height:100%;width:0%;border-radius:20px;background:#1689dc;transition:width .16s ease}
+  .upload-progress-label{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px;font-weight:700}
+  .upload-progress-percent{font-size:17px;font-variant-numeric:tabular-nums}
   .receipt-no{display:block;font-size:28px;font-weight:900;letter-spacing:.08em;margin:4px 0}
   @media(max-width:640px){
     .form-grid{grid-template-columns:1fr}
@@ -1000,7 +1005,7 @@ import {
   getFirestore, collection, doc, getDoc, setDoc, updateDoc,
   runTransaction, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js";
+import { getStorage, ref, uploadBytesResumable } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 
 const firebaseConfig={
@@ -1432,14 +1437,47 @@ async function issueQueue(){
   };
 }
 
-function canvasToPngBlob(){
+function canvasToBlobAsync(type, quality){
   return new Promise((resolve,reject)=>{
-    ensureFullCorrection();
-    draw();
-    canvas.toBlob(blob=>{
-      if(blob) resolve(blob);
-      else reject(new Error("canvas-toBlob-failed"));
-    },"image/png");
+    canvas.toBlob(blob=>blob ? resolve(blob) : reject(new Error("canvas-toBlob-failed")),type,quality);
+  });
+}
+
+// 印刷用ピクセル数はそのまま維持。PNGと高品質JPEGを実測比較し、
+// JPEGが十分に軽くなる場合のみ採用。文字・数字が多くPNG向きの作品はPNGを保持。
+async function createPrintBlob(){
+  ensureFullCorrection();
+  draw();
+  const png=await canvasToBlobAsync("image/png");
+  const jpeg=await canvasToBlobAsync("image/jpeg",0.97);
+  if(jpeg.size < png.size * 0.90){
+    return {blob:jpeg, mime:"image/jpeg", ext:"jpg"};
+  }
+  return {blob:png, mime:"image/png", ext:"png"};
+}
+
+function renderUploadProgress(percent, message="写真データを送信しています"){
+  const pct=Math.max(0,Math.min(100,Math.floor(percent)));
+  showOrderStatus("sending", `
+    <div class="upload-progress" role="status" aria-live="polite">
+      <div class="upload-progress-label"><span>${message}</span><span class="upload-progress-percent">${pct}%</span></div>
+      <div class="upload-progress-track" role="progressbar" aria-label="写真の送信進捗" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}">
+        <div class="upload-progress-fill" style="width:${pct}%"></div>
+      </div>
+      <div style="margin-top:7px;font-size:12px">完了するまで、この画面を閉じずにお待ちください。</div>
+    </div>`);
+}
+
+function uploadPrintBlob(storagePath, blob, mime, issued){
+  return new Promise((resolve,reject)=>{
+    const task=uploadBytesResumable(ref(storage,storagePath),blob,{
+      contentType:mime,
+      customMetadata:{source:SOURCE,shopId,shortId:issued.shortId}
+    });
+    task.on("state_changed",snapshot=>{
+      const percent=snapshot.totalBytes ? snapshot.bytesTransferred/snapshot.totalBytes*100 : 0;
+      renderUploadProgress(percent);
+    },reject,resolve);
   });
 }
 
@@ -1480,8 +1518,10 @@ submitOrderBtn.addEventListener("click",async ()=>{
     const count=Number(copies.value||1);
     const unitPrice=getUnitPrice();
 
+    showOrderStatus("sending","高画質の印刷データを準備しています…");
+    const printData=await createPrintBlob();
     orderRef=doc(collection(db,"orders"));
-    const storagePath=`annual-calendar-orders/${shopId}/${user.uid}/${orderRef.id}.png`;
+    const storagePath=`annual-calendar-orders/${shopId}/${user.uid}/${orderRef.id}.${printData.ext}`;
 
     await setDoc(orderRef,{
       source:SOURCE,
@@ -1522,20 +1562,14 @@ submitOrderBtn.addEventListener("click",async ()=>{
 
       ownerUid:user.uid,
       storagePath,
+      imageContentType:printData.mime,
       createdAt:serverTimestamp(),
       updatedAt:serverTimestamp()
     });
 
-    showOrderStatus("sending","写真データを送信しています…");
-    const blob=await canvasToPngBlob();
-    await uploadBytes(ref(storage,storagePath),blob,{
-      contentType:"image/png",
-      customMetadata:{
-        source:SOURCE,
-        shopId,
-        shortId:issued.shortId
-      }
-    });
+    renderUploadProgress(0);
+    await uploadPrintBlob(storagePath,printData.blob,printData.mime,issued);
+    renderUploadProgress(100,"写真の送信完了・受付を確定しています");
 
     await updateDoc(orderRef,{
       status:"WAIT",
