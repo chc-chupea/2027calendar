@@ -279,18 +279,25 @@
     font-size:11px;font-weight:900;vertical-align:2px;
   }
   .photo-first{
-    display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;
+    display:grid;grid-template-columns:minmax(0,1fr);gap:5px;align-items:center;
     margin-bottom:10px;
   }
+  .photo-source-actions{
+    display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:8px;
+  }
+  .photo-source-actions button{
+    min-width:0;white-space:nowrap;font-family:inherit;
+    background:var(--blue);color:#fff;border-color:var(--blue);
+  }
   .photo-pick{
-    min-height:56px;border-radius:15px;
+    min-height:48px;padding:10px 6px;border-radius:15px;
     background:#4f8fc7;color:#fff;border-color:#4f8fc7;
-    font-size:18px;font-weight:900;
+    font-size:14px;font-weight:900;
   }
   .photo-state{
-    max-width:120px;font-size:10px;line-height:1.35;color:#7b858e;text-align:right;
+    font-size:10px;line-height:1.35;color:#7b858e;text-align:right;
   }
-  #photoInput{display:none}
+  #photoInput,#cameraInput{display:none}
 
   .canvas-box{
     min-height:0;padding:5px;border-radius:16px;
@@ -551,11 +558,6 @@
       font-size:11px;
     }
 
-    /* 上に写真選択ボタンがあるので、重複する選び直しボタンは非表示 */
-    body.has-photo #reselectPhotoBtn{
-      display:none;
-    }
-
     body.has-photo .correction-panel{
       padding:7px 8px 8px;
       border-radius:10px;
@@ -671,6 +673,14 @@
   .correction-reselect{
     width:100%;
     margin-top:5px;
+    row-gap:4px;
+  }
+  .reselect-title{
+    grid-column:1/-1;margin:0;
+    font-size:12px;font-weight:700;line-height:1.4;color:#5d6670;
+  }
+  .correction-reselect button{
+    min-height:36px;padding:6px 4px;font-size:13px;line-height:20px;
   }
 
   @media(max-width:640px){
@@ -726,16 +736,15 @@
       min-height:23px;
     }
 
-    /* 以前の「選び直し非表示」を打ち消して、補正直下だけ表示 */
-    body.has-photo #reselectPhotoBtn{
-      display:block !important;
-    }
+    /* 選び直しは補正直下で、撮影とライブラリ選択を横並びにする */
     body.has-photo .correction-reselect{
-      min-height:28px;
       margin-top:4px;
-      padding:3px 7px;
+    }
+    body.has-photo .correction-reselect button{
+      min-height:32px;
+      padding:5px 4px;
       border-radius:6px;
-      font-size:9px;
+      font-size:12px;
     }
 
     /* 選択後は上の大ボタン領域を完全に消すので、その分カレンダーを上へ */
@@ -832,6 +841,7 @@
         </div>
 
         <input id="photoInput" type="file" accept="image/*">
+        <input id="cameraInput" type="file" accept="image/*" capture="environment">
 
         <input id="zoom" type="range" min="60" max="220" value="100" step="1" style="display:none">
         <input id="offsetX" type="range" min="-100" max="100" step="1" value="0" style="display:none">
@@ -866,7 +876,11 @@
           <div class="correction-note" id="correctionNote"></div>
         </div>
 
-        <button class="ghost correction-reselect" id="reselectPhotoBtn" type="button">写真を選び直す</button>
+        <div class="photo-source-actions correction-reselect" id="reselectPhotoActions" role="group" aria-labelledby="reselectPhotoLabel">
+          <p class="reselect-title" id="reselectPhotoLabel">写真をえらび直す</p>
+          <button class="primary" type="button" data-photo-source="camera">写真を撮る</button>
+          <button class="primary" type="button" data-photo-source="library">ライブラリから選ぶ</button>
+        </div>
 
         <div class="btns">
           <button class="primary" id="goOrderBtn" type="button">申し込む</button>
@@ -889,8 +903,11 @@
       </div>
 
       <div class="photo-first">
-        <button class="photo-pick" id="bigPhotoBtn" type="button">＋ 写真を選ぶ／撮る</button>
-        <div class="photo-state" id="photoState">まだ写真が<br>選ばれていません</div>
+        <div class="photo-source-actions" role="group" aria-label="写真の取り込み方法">
+          <button class="photo-pick" id="bigPhotoBtn" type="button" data-photo-source="camera">写真を撮る</button>
+          <button class="photo-pick" type="button" data-photo-source="library">ライブラリから選ぶ</button>
+        </div>
+        <div class="photo-state" id="photoState">まだ写真が選ばれていません</div>
       </div>
 
       <div class="preview-top-controls">
@@ -1038,8 +1055,8 @@ function isJapanHoliday(year, month, day){
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const photoInput = document.getElementById('photoInput');
+const cameraInput = document.getElementById('cameraInput');
 const bigPhotoBtn = document.getElementById('bigPhotoBtn');
-const reselectPhotoBtn = document.getElementById('reselectPhotoBtn');
 const photoState = document.getElementById('photoState');
 const orderSection = document.getElementById('orderSection');
 const paperSize = document.getElementById('paperSize');
@@ -1077,7 +1094,6 @@ newspaperLogo.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAU8AAABBCAYAA
 newspaperLogo.onload = () => draw();
 
 let img = null;
-let imgURL = null;
 let rotation = 0;
 let currentReceiptNo = "";
 
@@ -1103,8 +1119,13 @@ const SIZES = {
 };
 
 photoInput.addEventListener('change', handlePhoto);
-bigPhotoBtn.addEventListener('click', ()=>photoInput.click());
-reselectPhotoBtn.addEventListener('click', ()=>photoInput.click());
+cameraInput.addEventListener('change', handlePhoto);
+document.querySelectorAll('button[data-photo-source]').forEach(button=>{
+  button.addEventListener('click', ()=>{
+    const input = button.dataset.photoSource === 'camera' ? cameraInput : photoInput;
+    input.click();
+  });
+});
 
 document.querySelectorAll('.layout-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -1201,7 +1222,8 @@ function normalizeAngle(a){
 
 canvas.addEventListener('pointerdown', e=>{
   if(!img){
-    photoInput.click();
+    document.querySelector('.photo-first').scrollIntoView({behavior:'smooth',block:'center'});
+    bigPhotoBtn.focus({preventScroll:true});
     return;
   }
   const p=canvasPoint(e.clientX,e.clientY);
@@ -1555,12 +1577,15 @@ function currentMode(){
 }
 
 function handlePhoto(e){
-  const file = e.target.files && e.target.files[0];
+  const input = e.currentTarget;
+  const file = input.files?.[0];
   if(!file) return;
-  if(imgURL) URL.revokeObjectURL(imgURL);
-  imgURL = URL.createObjectURL(file);
+  // 同じ写真の選び直しや同じファイル名での再撮影にも対応する。
+  input.value = '';
+  const url = URL.createObjectURL(file);
   const image = new Image();
   image.onload = ()=>{
+    URL.revokeObjectURL(url);
     img = image;
     rotation = 0;
     correction = { brightness:100, contrast:100, saturation:100 };
@@ -1571,12 +1596,15 @@ function handlePhoto(e){
     correctionNote.textContent = '';
     fitPhoto();
     draw();
-    bigPhotoBtn.textContent = '写真を選び直す';
     photoState.innerHTML = '写真を配置しました';
     document.body.classList.add('has-photo');
     document.querySelector('.preview').scrollIntoView({behavior:'smooth',block:'start'});
   };
-  image.src = imgURL;
+  image.onerror = ()=>{
+    URL.revokeObjectURL(url);
+    alert('写真を読み込めませんでした。撮り直すか、別の写真を選んでください。');
+  };
+  image.src = url;
 }
 
 function clamp(v,min,max){
@@ -1854,7 +1882,7 @@ function drawPhotoRect(rect, mode){
     ctx.textBaseline = 'middle';
     ctx.fillText('ここに写真が入ります', rect.x + rect.w/2, rect.y + rect.h/2 - 24);
     ctx.font = `500 ${mode.paper === 'A4' ? 26 : 34}px sans-serif`;
-    ctx.fillText('上の「写真を選ぶ／撮る」から選択', rect.x + rect.w/2, rect.y + rect.h/2 + 28);
+    ctx.fillText('上のボタンから写真を撮る・選ぶ', rect.x + rect.w/2, rect.y + rect.h/2 + 28);
   }
 
   ctx.restore();
