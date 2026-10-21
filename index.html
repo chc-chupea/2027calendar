@@ -1789,6 +1789,12 @@ function roundedRectPath(ctx,x,y,w,h,r){
 
 function getLayoutRects(mode){
   const pad = mode.paper === 'A4' ? 80 : 120;
+  // 受付番号・ロゴ専用の下余白。写真・日付はこの領域より上に収める。
+  const footerH = mode.paper === 'A4' ? 120 : 170;
+  const footer = {
+    x: pad, y: mode.h - footerH,
+    w: mode.w - pad*2, h: footerH
+  };
 
   if(mode.kind === 'portraitPhoto'){
     // 縦写真向け：写真の上に年号専用の小さな帯を設け、右肩上の外側へ配置
@@ -1801,19 +1807,20 @@ function getLayoutRects(mode){
     const photoW = Math.round(previousPhotoW * 0.80);
     const photoX = pad;
     const photoY = pad + yearH + yearGap;
-    const photoH = mode.h - pad - photoY;
+    const photoH = footer.y - photoY;
 
     const monthsX = pad + photoW + gap;
     const monthsW = mode.w - monthsX - pad;
 
     return {
+      footer,
       year: { x: photoX, y: pad, w: photoW, h: yearH },
       photo: { x: photoX, y: photoY, w: photoW, h: photoH },
       monthGrid: {
         x: monthsX,
         y: pad,
         w: monthsW,
-        h: mode.h - pad*2
+        h: footer.y - pad
       }
     };
   } else {
@@ -1825,9 +1832,10 @@ function getLayoutRects(mode){
     const photoY = pad + yearH + yearGap;
     const photoH = Math.round(mode.h * 0.43) - pad;
     const monthsY = photoY + photoH + gap;
-    const monthsH = mode.h - monthsY - pad;
+    const monthsH = footer.y - monthsY;
 
     return {
+      footer,
       year: { x: pad, y: pad, w: mode.w - pad*2, h: yearH },
       photo: { x: pad, y: photoY, w: mode.w - pad*2, h: photoH },
       month: { x: pad, y: monthsY, w: mode.w - pad*2, h: monthsH }
@@ -2078,23 +2086,22 @@ function drawMonths(mode, rects){
 }
 
 
-function drawReceiptNumber(mode){
+function drawReceiptNumber(mode, rects){
   if(!currentReceiptNo) return;
 
   ctx.save();
 
-  // 左下から約5mm内側。縦写真向けだけは写真とかぶらないよう、さらに約2mm下へ。
-  const extraInset = 59; // 約5mm（300dpi換算）
-  const portraitDownShift = mode.kind === 'portraitPhoto' ? 48 : 0; // 合計約4mm下へ
-  const left = (mode.paper === 'A4' ? 38 : 56) + extraInset;
-  const bottom = ((mode.paper === 'A4' ? 22 : 32) + extraInset) - portraitDownShift;
+  // 営業所・番号の長さ・写真の向きにかかわらず、専用余白の左側に固定。
+  const footer = rects.footer;
+  const baseline = footer.y + footer.h / 2;
   const fontSize = mode.paper === 'A4' ? 22 : 31;
 
   ctx.font = `700 ${fontSize}px sans-serif`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
   ctx.fillStyle = '#5f666c';
-  ctx.fillText(currentReceiptNo, left, mode.h - bottom);
+  // 長い営業所コードでも右下のロゴまで広がらないよう、左半分に収める。
+  ctx.fillText(currentReceiptNo, footer.x, baseline, footer.w / 2);
 
   ctx.restore();
 }
@@ -2133,7 +2140,7 @@ function draw(){
   drawPhotoRect(rects.photo, mode);
   drawYearTitle(mode, rects);
   drawMonths(mode, rects);
-  drawReceiptNumber(mode);
+  drawReceiptNumber(mode, rects);
   drawNewspaperLogo(mode);
 }
 
