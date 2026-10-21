@@ -1437,23 +1437,14 @@ async function issueQueue(){
   };
 }
 
-function canvasToBlobAsync(type, quality){
-  return new Promise((resolve,reject)=>{
-    canvas.toBlob(blob=>blob ? resolve(blob) : reject(new Error("canvas-toBlob-failed")),type,quality);
-  });
-}
-
-// 印刷用ピクセル数はそのまま維持。PNGと高品質JPEGを実測比較し、
-// JPEGが十分に軽くなる場合のみ採用。文字・数字が多くPNG向きの作品はPNGを保持。
+// Firebase Storage の既存ルールと管理画面が要求するPNG形式を維持する。
 async function createPrintBlob(){
   ensureFullCorrection();
   draw();
-  const png=await canvasToBlobAsync("image/png");
-  const jpeg=await canvasToBlobAsync("image/jpeg",0.97);
-  if(jpeg.size < png.size * 0.90){
-    return {blob:jpeg, mime:"image/jpeg", ext:"jpg"};
-  }
-  return {blob:png, mime:"image/png", ext:"png"};
+  const blob=await new Promise((resolve,reject)=>{
+    canvas.toBlob(v=>v?resolve(v):reject(new Error("canvas-toBlob-failed")),"image/png");
+  });
+  return {blob, mime:"image/png", ext:"png"};
 }
 
 function renderUploadProgress(percent, message="写真データを送信しています"){
@@ -1595,7 +1586,13 @@ submitOrderBtn.addEventListener("click",async ()=>{
         });
       }catch(_){}
     }
-    showOrderStatus("error","送信できませんでした。通信状態を確認して、もう一度お試しください。");
+    showOrderStatus("error","送信できませんでした。通信状態を確認して、もう一度お試しください。<div id=\"sendErrorHint\" style=\"font-size:12px;margin-top:5px\"></div>");
+    const errHint=document.getElementById("sendErrorHint");
+    if(errHint){
+      const code=String(err?.code||"");
+      const labels={"storage/unauthorized":"写真の保存権限を確認してください。","storage/retry-limit-exceeded":"通信がタイムアウトしました。","storage/canceled":"送信が中断されました。","auth/network-request-failed":"通信状況をご確認ください。","storage/quota-exceeded":"保存容量の上限を確認してください。"};
+      errHint.textContent=(labels[code]||"原因コード")+"（"+(code||"unknown")+"）";
+    }
     submitOrderBtn.disabled=false;
   }
 });
