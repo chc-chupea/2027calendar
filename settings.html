@@ -218,8 +218,11 @@ button{
       </label>
 
       <label class="full">営業所管理画面 4桁PIN
-        <input id="adminPin" type="password" inputmode="numeric"
-               maxlength="4" pattern="[0-9]{4}" placeholder="例：1234">
+        <span class="pin-line">
+          <input id="adminPin" type="password" inputmode="numeric"
+                 maxlength="4" pattern="[0-9]{4}" placeholder="例：1234" autocomplete="new-password">
+          <button id="toggleAdminPin" type="button" class="pin-eye" aria-label="PINを表示" aria-pressed="false">👁 表示</button>
+        </span>
       </label>
 
       <div class="survey-manager">
