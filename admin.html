@@ -16,6 +16,9 @@ button,a.btn{border:0;border-radius:8px;padding:10px 12px;font-weight:800;cursor
 .login input{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;margin:5px 0 10px}
 .primary{background:var(--blue);color:#fff}.ghost{background:#fff;border:1px solid var(--line);color:#44515b}
 .hidden{display:none!important}
+.pin-line{display:flex;gap:8px;align-items:center}
+.login .pin-line input{flex:1;min-width:0}
+.pin-eye{flex:0 0 auto;background:#eef5fb;border:1px solid #bfd4e6;color:#315c7f;padding:12px 9px;min-width:65px}
 .auto-panel{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px}
 .auto-copy{font-size:12px;color:var(--muted)}.auto-toggle{min-width:145px;background:#f0f2f4;color:#56616b}.auto-toggle.on{background:#e8f6ee;color:#286342}
 .filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px}.filters button{background:#fff;border:1px solid var(--line);color:#53606a}.filters button.active{background:#3b4852;color:#fff}
@@ -101,7 +104,7 @@ button,a.btn{border:0;border-radius:8px;padding:10px 12px;font-weight:800;cursor
   <section id="loginPanel" class="login">
     <h2>スタッフ用 管理画面</h2>
     <p class="sub">営業所の4桁管理パスワードを入力してください。</p>
-    <input id="password" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="one-time-code" placeholder="4桁の数字">
+    <div class="pin-line"><input id="password" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" placeholder="4桁の数字"><button type="button" id="togglePin" class="pin-eye" aria-label="PINを表示" aria-pressed="false">👁 表示</button></div>
     <button id="loginBtn" class="primary">開く</button>
     <div id="loginMsg" class="sub" style="margin-top:10px"></div>
   </section>
@@ -196,6 +199,14 @@ async function loadSettings(){
   document.title=`${shopSettings.shopName||"営業所"}｜2027カレンダー管理`;
 }
 
+document.getElementById("togglePin").onclick=()=>{
+  const input=document.getElementById("password"),btn=document.getElementById("togglePin");
+  const show=input.type==="password";
+  input.type=show?"text":"password";
+  btn.textContent=show?"🙈 隠す":"👁 表示";
+  btn.setAttribute("aria-pressed",String(show));
+  btn.setAttribute("aria-label",show?"PINを隠す":"PINを表示");
+};
 document.getElementById("loginBtn").onclick=async()=>{
   const pin=document.getElementById("password").value.trim();
   const msg=document.getElementById("loginMsg");
@@ -206,6 +217,7 @@ document.getElementById("loginBtn").onclick=async()=>{
   }
 
   msg.textContent="確認中…";
+  document.getElementById("loginBtn").disabled=true;
   try{
     const login=httpsCallable(functions,"loginAnnual2027Admin");
     const result=await login({shopId,pin});
@@ -215,9 +227,14 @@ document.getElementById("loginBtn").onclick=async()=>{
     msg.textContent="";
   }catch(e){
     console.error(e);
-    msg.textContent=e?.code==="functions/resource-exhausted"
+    const code=e?.code||"unknown";
+    msg.textContent=code==="functions/resource-exhausted"
       ?"入力回数が多いため、しばらく待ってからお試しください。"
-      :"4桁PINが違います。";
+      :code==="functions/unauthenticated" || code==="functions/permission-denied" || code==="functions/invalid-argument" || code==="functions/failed-precondition"
+        ?`PIN認証に失敗しました（${code}）。営業所IDと設定済みPINをご確認ください。`
+        :`ログイン処理に失敗しました（${code}）。通信またはFirebase側の設定を確認してください。`;
+  }finally{
+    document.getElementById("loginBtn").disabled=false;
   }
 };
 document.getElementById("password").addEventListener("keydown",e=>{

@@ -34,6 +34,9 @@ button{
 .links{display:grid;gap:9px;margin-top:16px}
 .url{background:#f7f9fb;padding:10px;border-radius:7px;font-size:12px;word-break:break-all}
 .hidden{display:none!important}
+.pin-line{display:flex;align-items:center;gap:8px}.pin-line input{min-width:0;flex:1}
+.pin-eye{flex:0 0 auto;min-width:65px;background:#eef5fb;color:#315c7f;border:1px solid #bfd4e6;padding:11px 9px}
+.pin-status{background:#f7f9fb;border:1px solid #e2e8ed;border-radius:8px;padding:12px;font-size:13px;line-height:1.6;word-break:break-word}
 .msg{font-size:12px;color:#6f7982;margin-top:8px;line-height:1.5}
 .owner-note{
   padding:10px 12px;background:#f7fbfe;border:1px solid #dce7ef;
@@ -237,6 +240,7 @@ button{
       <div><small>お客様用</small><div id="customerUrl" class="url"></div></div>
       <div><small>営業所管理用</small><div id="adminUrl" class="url"></div></div>
       <div><small>設定用</small><div id="settingsUrl" class="url"></div></div>
+      <div><b>現在の営業所管理PIN</b><div id="currentPinStatus" class="pin-status">確認中…</div></div>
     </div>
   </div>
 </div>
@@ -264,6 +268,8 @@ const firebaseConfig={
 };
 
 const OWNER_EMAIL="sp-fureai@soleil.ocn.ne.jp";
+// PINは一般閲覧可能なFirestore設定には保存しない。保存直後のオーナー画面内だけで提示する。
+const confirmedPinInThisPage=new Map();
 const $=id=>document.getElementById(id);
 
 const app=initializeApp(firebaseConfig);
@@ -312,7 +318,14 @@ $("password").addEventListener("keydown",e=>{
   if(e.key==="Enter") $("loginBtn").click();
 });
 
-$("logoutBtn").onclick=()=>signOut(auth);
+$("logoutBtn").onclick=()=>{confirmedPinInThisPage.clear();return signOut(auth);};
+$("toggleAdminPin").onclick=()=>{
+  const input=$("adminPin"),button=$("toggleAdminPin"),show=input.type==="password";
+  input.type=show?"text":"password";
+  button.textContent=show?"🙈 隠す":"👁 表示";
+  button.setAttribute("aria-pressed",String(show));
+  button.setAttribute("aria-label",show?"PINを隠す":"PINを表示");
+};
 
 onAuthStateChanged(auth,async user=>{
   const isOwner=!!user?.email && user.email.toLowerCase()===OWNER_EMAIL;
@@ -513,6 +526,8 @@ async function loadSettings(){
     surveyDraft=normalizeSurvey(savedQuestions && !isLegacyBasicOnly?savedQuestions:BASIC_SURVEY);
     renderSurveyEditor();
     $("adminPin").value="";
+    $("adminPin").type="password";
+    $("toggleAdminPin").textContent="👁 表示";
   }catch(e){
     console.error(e);
     $("msg").textContent=`設定の読み込みに失敗しました。${e?.code?`（${e.code}）`:""}`;
@@ -526,6 +541,15 @@ function currentShopId(){
     .replace(/[^a-zA-Z0-9_-]/g,"")||"main";
 }
 
+function renderPinStatus(){
+  const id=currentShopId(),pin=confirmedPinInThisPage.get(id);
+  const el=$("currentPinStatus");
+  if(pin){
+    el.textContent=`${pin}（この画面で保存が確認されたPIN）`;
+  }else{
+    el.textContent="現在のPINは取得できません。セキュリティ保護のため既存PINの読み出しには対応していません。変更するときは上の欄に新しい4桁を入力し、保存してください。保存成功直後はここに表示します。";
+  }
+}
 function renderUrls(){
   const id=currentShopId();
   const base=new URL(".",location.href);
@@ -533,6 +557,7 @@ function renderUrls(){
   $("customerUrl").textContent=new URL(`index.html?shop=${id}`,base).href;
   $("adminUrl").textContent=new URL(`admin.html?shop=${id}`,base).href;
   $("settingsUrl").textContent=new URL(`settings.html?shop=${id}`,base).href;
+  renderPinStatus();
 }
 
 $("shopIdInput").addEventListener("input",renderUrls);
@@ -552,7 +577,8 @@ $("saveBtn").onclick=async()=>{
   }
 
   $("msg").textContent="保存中…";
-
+  $("saveBtn").disabled=true;
+  let settingsSaved=false;
   try{
     await setDoc(doc(db,"settings",id),{
       shopId:id,
@@ -568,10 +594,12 @@ $("saveBtn").onclick=async()=>{
       annualCalendar2027Enabled:true,
       updatedAt:serverTimestamp()
     },{merge:true});
+    settingsSaved=true;
 
     if(pin){
       const setPin=httpsCallable(functions,"setAnnual2027AdminPin");
       await setPin({shopId:id,pin});
+      confirmedPinInThisPage.set(id,pin);
     }
 
     shopId=id;
@@ -585,7 +613,12 @@ $("saveBtn").onclick=async()=>{
 
   }catch(e){
     console.error(e);
-    $("msg").textContent=`保存できませんでした。${e?.code?`（${e.code}）`:""}`;
+    const code=e?.code||"unknown";
+    $("msg").textContent=settingsSaved && pin
+      ?`基本設定は保存しましたが、PINの登録には失敗しました（${code}）。新しいPINでログインできる状態ではありません。PINを入力したまま再保存してください。`
+      :`保存できませんでした（${code}）。${e?.message||""}`;
+  }finally{
+    $("saveBtn").disabled=false;
   }
 };
 </script>
