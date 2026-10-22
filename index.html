@@ -825,6 +825,26 @@
 .survey-answer-select,.survey-answer-text{width:100%;border:1px solid #dce3e9;border-radius:8px;padding:11px;background:#fff;font:inherit}
 .survey-optional-note{font-size:11px;color:#79848e;font-weight:400}
 .survey-options input[type="checkbox"]{width:18px;height:18px;margin:0}
+
+/* カレンダー下の写真操作案内：スマホでも読みやすく */
+.touch-tip,
+body.has-photo .touch-tip {
+  font-size:14px;
+  font-weight:800;
+  line-height:1.5;
+  color:#4b5965;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+@media (max-width:640px) {
+  .touch-tip,
+  body.has-photo .touch-tip {
+    font-size:13px;
+    font-weight:800;
+    line-height:1.45;
+    white-space:normal;
+  }
+}
 </style>
 </head>
 <body>
