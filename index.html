@@ -818,6 +818,12 @@
     }
   }
 
+
+.survey-question-item{margin-bottom:14px}
+.survey-question-item:last-child{margin-bottom:0}
+.survey-answer-select,.survey-answer-text{width:100%;border:1px solid #dce3e9;border-radius:8px;padding:11px;background:#fff;font:inherit}
+.survey-optional-note{font-size:11px;color:#79848e;font-weight:400}
+.survey-options input[type="checkbox"]{width:18px;height:18px;margin:0}
 </style>
 </head>
 <body>
@@ -976,9 +982,8 @@
       </div>
 
       <div class="form-field full">
-        <div class="survey-box">
-          <div class="survey-q" id="surveyQuestion">このカレンダー企画をどこで知りましたか？</div>
-          <div class="survey-options" id="surveyOptions"></div>
+        <div class="survey-box" id="surveyBox">
+          <div id="surveyDynamic"></div>
         </div>
       </div>
     </div>
@@ -1032,7 +1037,8 @@ const defaultSettings={
   a3Price:0,
   pricingMode:"allPaid",
   surveyQuestion:"このカレンダー企画をどこで知りましたか？",
-  surveyOptions:["新聞折込","営業所からの案内","家族・知人","その他"]
+  surveyOptions:["新聞折込","営業所からの案内","家族・知人","その他"],
+  surveyEnabled:true
 };
 let shopSettings={...defaultSettings};
 
@@ -1087,8 +1093,8 @@ const copies=document.getElementById('copies');
 const freeNote=document.getElementById('freeNote');
 const privacyConsent=document.getElementById('privacyConsent');
 const noticeConsent={checked:true};
-const surveyQuestionEl=document.getElementById('surveyQuestion');
-const surveyOptionsEl=document.getElementById('surveyOptions');
+const surveyBoxEl=document.getElementById('surveyBox');
+const surveyDynamicEl=document.getElementById('surveyDynamic');
 const orderSummary=document.getElementById('orderSummary');
 const totalPrice=document.getElementById('totalPrice');
 const orderStatus=document.getElementById('orderStatus');
@@ -1356,14 +1362,39 @@ async function loadShopSettings(){
   updateOrderSummary();
 }
 
+function getSurveyQuestions(){
+  if(Array.isArray(shopSettings.surveyQuestions))return shopSettings.surveyQuestions;
+  return [{id:"calendar-source",title:"アンケート①",description:shopSettings.surveyQuestion||defaultSettings.surveyQuestion,type:"radio",required:false,options:shopSettings.surveyOptions||defaultSettings.surveyOptions}];
+}
 function renderSurvey(){
-  surveyQuestionEl.textContent=shopSettings.surveyQuestion||defaultSettings.surveyQuestion;
-  const opts=Array.isArray(shopSettings.surveyOptions) && shopSettings.surveyOptions.length
-    ? shopSettings.surveyOptions
-    : defaultSettings.surveyOptions;
-  surveyOptionsEl.innerHTML=opts.map((o,i)=>`
-    <label><input type="radio" name="surveyAnswer" value="${escapeHtml(String(o))}" ${i===0?"checked":""}> <span>${escapeHtml(String(o))}</span></label>
-  `).join("");
+  const enabled=shopSettings.surveyEnabled!==false;
+  surveyBoxEl.parentElement.style.display=enabled?"":"none";
+  if(!enabled)return;
+  surveyDynamicEl.innerHTML=getSurveyQuestions().map((q,index)=>{
+    const name=`survey-q-${index}`,type=q.type||"radio";
+    const caption=escapeHtml(q.description||q.title||`質問${index+1}`);
+    const required=q.required===true?'<span class="required">必須</span>':'<span class="survey-optional-note">任意</span>';
+    let answers="";
+    if(type==="textarea")answers=`<textarea class="survey-answer-text" data-survey-answer="${index}" rows="3" placeholder="ご回答を入力してください"></textarea>`;
+    else if(type==="select")answers=`<select class="survey-answer-select" data-survey-answer="${index}"><option value="">選択してください</option>${(q.options||[]).map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("")}</select>`;
+    else answers=`<div class="survey-options">${(q.options||[]).map(o=>`<label><input type="${type==="checkbox"?"checkbox":"radio"}" name="${name}" value="${escapeHtml(o)}" data-survey-answer="${index}"><span>${escapeHtml(o)}</span></label>`).join("")}</div>`;
+    return `<div class="survey-question-item"><div class="survey-q">${caption} ${required}</div>${answers}</div>`;
+  }).join("");
+}
+function collectSurveyAnswers(){
+  if(shopSettings.surveyEnabled===false)return [];
+  return getSurveyQuestions().map((q,index)=>{
+    const nodes=[...surveyDynamicEl.querySelectorAll(`[data-survey-answer="${index}"]`)];
+    const answers=(q.type==="checkbox"||q.type==="radio")?nodes.filter(el=>el.checked).map(el=>el.value):nodes.map(el=>el.value.trim()).filter(Boolean);
+    return {id:q.id||`question-${index+1}`,question:q.description||q.title||"",type:q.type||"radio",answer:q.type==="checkbox"?answers:(answers[0]||"")};
+  });
+}
+function validateSurvey(){
+  if(shopSettings.surveyEnabled===false)return true;
+  const questions=getSurveyQuestions(),answers=collectSurveyAnswers();
+  const missing=questions.findIndex((q,n)=>q.required===true && (Array.isArray(answers[n]?.answer)?!answers[n].answer.length:!answers[n]?.answer));
+  if(missing>=0){alert(`アンケート「${questions[missing].description||questions[missing].title||`質問${missing+1}`}」にご回答ください。`);return false;}
+  return true;
 }
 
 function escapeHtml(s){
@@ -1473,7 +1504,8 @@ function uploadPrintBlob(storagePath, blob, mime, issued){
 }
 
 function selectedSurveyAnswer(){
-  return document.querySelector('input[name="surveyAnswer"]:checked')?.value||"";
+  const answer=collectSurveyAnswers()[0]?.answer;
+  return Array.isArray(answer)?answer.join("、"):(answer||"");
 }
 
 function showOrderStatus(type,html){
@@ -1495,6 +1527,7 @@ submitOrderBtn.addEventListener("click",async ()=>{
     return;
   }
 
+  if(!validateSurvey())return;
   submitOrderBtn.disabled=true;
   showOrderStatus("sending","受付番号を発行しています…");
 
@@ -1543,7 +1576,10 @@ submitOrderBtn.addEventListener("click",async ()=>{
       address:addressInput.value.trim(),
       phone:phone.value.trim(),
       freeNote:freeNote.value.trim(),
-      surveyQuestion:shopSettings.surveyQuestion||defaultSettings.surveyQuestion,
+      surveyEnabled:shopSettings.surveyEnabled!==false,
+      surveyQuestions:shopSettings.surveyEnabled===false?[]:getSurveyQuestions(),
+      surveyAnswers:collectSurveyAnswers(),
+      surveyQuestion:shopSettings.surveyEnabled===false?"":(getSurveyQuestions()[0]?.description||""),
       surveyAnswer:selectedSurveyAnswer(),
 
       privacyConsent:true,

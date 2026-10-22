@@ -138,6 +138,21 @@ button{
   }
 }
 
+
+/* 質問編集 */
+.survey-manager{grid-column:1/-1;border:1px solid #dce7ef;background:#f7fbfe;border-radius:12px;padding:15px;display:grid;gap:12px}
+.survey-switch{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:800}
+.survey-switch input{width:21px;height:21px;accent-color:#4f8fc7}
+.survey-manager button{width:auto}
+.survey-question-card{background:#fff;border:1px solid #d6e5ef;border-radius:10px;padding:13px;display:grid;gap:9px}
+.survey-question-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.survey-mini-actions{display:flex;gap:5px;flex-wrap:wrap}
+.survey-mini-actions button{padding:7px 9px;font-size:12px}
+.survey-fields{display:grid;gap:9px}
+.survey-fields label{display:grid;gap:5px}
+.survey-option-row{display:grid;grid-template-columns:1fr auto;gap:6px;margin:6px 0}
+.survey-option-row button{background:#fbecea;color:#9e3026}
+.survey-help{font-size:12px;color:#657683;line-height:1.6}
 </style>
 </head>
 <body>
@@ -204,13 +219,13 @@ button{
                maxlength="4" pattern="[0-9]{4}" placeholder="例：1234">
       </label>
 
-      <label class="full">アンケート質問
-        <input id="surveyQuestion">
-      </label>
-
-      <label class="full">アンケート選択肢（1行に1つ）
-        <textarea id="surveyOptions"></textarea>
-      </label>
+      <div class="survey-manager">
+        <label class="survey-switch"><input type="checkbox" id="surveyEnabled" checked>アンケートを表示する</label>
+        <div class="survey-help">OFFにするとお客様の申込画面からアンケート全体を非表示にします。質問ごとに回答形式・必須設定・選択肢を編集できます。</div>
+        <div><button type="button" id="addSurveyBtn" class="primary">＋ 質問を追加</button></div>
+        <div id="surveyEditorList"></div>
+        <div><button type="button" id="resetSurveyBtn" class="ghost">基本の質問に戻す</button></div>
+      </div>
     </div>
 
     <button id="saveBtn" class="primary" style="margin-top:14px">保存する</button>
@@ -266,7 +281,8 @@ const defaults={
   a3Price:0,
   pricingMode:"allPaid",
   surveyQuestion:"このカレンダー企画をどこで知りましたか？",
-  surveyOptions:["新聞折込","営業所からの案内","家族・知人","その他"]
+  surveyOptions:["新聞折込","営業所からの案内","家族・知人","その他"],
+  surveyEnabled:true
 };
 
 $("loginBtn").onclick=async()=>{
@@ -419,6 +435,61 @@ function escapeHtml(value){
     .replaceAll("'","&#039;");
 }
 
+const BASIC_SURVEY=[{id:"calendar-source",title:"アンケート①",description:"このカレンダー企画をどこで知りましたか？",type:"radio",required:false,options:["新聞折込","営業所からの案内","家族・知人","その他"]}];
+let surveyDraft=[];
+function normalizeSurvey(arr){
+  return (Array.isArray(arr)?arr:BASIC_SURVEY).map((q,n)=>({
+    id:String(q?.id||`question-${n+1}`),title:String(q?.title??`アンケート${n+1}`),
+    description:String(q?.description??""),type:["radio","checkbox","select","textarea"].includes(q?.type)?q.type:"radio",
+    required:q?.required===true,options:Array.isArray(q?.options)?q.options.map(String):[]
+  }));
+}
+function syncSurvey(){
+  document.querySelectorAll("#surveyEditorList .survey-question-card").forEach((card,n)=>{
+    const q=surveyDraft[n];if(!q)return;
+    q.title=card.querySelector('[data-field="title"]').value;
+    q.description=card.querySelector('[data-field="description"]').value;
+    q.type=card.querySelector('[data-field="type"]').value;
+    q.required=card.querySelector('[data-field="required"]').checked;
+    q.options=[...card.querySelectorAll('[data-option-input]')].map(el=>el.value);
+  });
+}
+function renderSurveyEditor(){
+  const list=$("surveyEditorList");
+  list.innerHTML=surveyDraft.map((q,n)=>{
+    const options=q.type!=="textarea";
+    return `<div class="survey-question-card" data-index="${n}">
+      <div class="survey-question-head"><strong>質問 ${n+1}</strong><div class="survey-mini-actions">
+      <button type="button" class="ghost" data-action="up" ${n===0?"disabled":""}>↑ 上へ</button>
+      <button type="button" class="ghost" data-action="down" ${n===surveyDraft.length-1?"disabled":""}>↓ 下へ</button>
+      <button type="button" class="ghost" data-action="delete">削除</button></div></div>
+      <div class="survey-fields">
+      <label>見出し<input data-field="title" value="${escapeHtml(q.title)}"></label>
+      <label>質問文<textarea data-field="description">${escapeHtml(q.description)}</textarea></label>
+      <label>回答形式<select data-field="type">
+      ${[["radio","1つだけ選択"],["checkbox","複数選択"],["select","プルダウン"],["textarea","自由記述"]].map(([v,t])=>`<option value="${v}" ${q.type===v?"selected":""}>${t}</option>`).join("")}
+      </select></label><label class="survey-switch"><input type="checkbox" data-field="required" ${q.required?"checked":""}>回答を必須にする</label></div>
+      ${options?`<div><strong>選択肢</strong>${q.options.map((v,k)=>`<div class="survey-option-row" data-option-index="${k}"><input data-option-input value="${escapeHtml(v)}"><button type="button" data-action="remove-option">削除</button></div>`).join("")}
+      <button type="button" class="ghost" data-action="add-option">＋ 選択肢を追加</button></div>`:""}
+    </div>`;
+  }).join("") || '<div class="survey-help">質問がありません。「＋ 質問を追加」から作成できます。</div>';
+  list.style.opacity=$("surveyEnabled").checked?"1":"0.55";
+}
+$("surveyEnabled").addEventListener("change",renderSurveyEditor);
+$("surveyEditorList").addEventListener("change",e=>{if(e.target.matches('[data-field="type"]')){syncSurvey();renderSurveyEditor();}});
+$("surveyEditorList").addEventListener("click",e=>{
+  const btn=e.target.closest("button[data-action]");if(!btn)return;
+  syncSurvey();const n=Number(btn.closest('[data-index]').dataset.index),a=btn.dataset.action;
+  if(a==="delete")surveyDraft.splice(n,1);
+  if(a==="up" && n>0)[surveyDraft[n-1],surveyDraft[n]]=[surveyDraft[n],surveyDraft[n-1]];
+  if(a==="down" && n<surveyDraft.length-1)[surveyDraft[n+1],surveyDraft[n]]=[surveyDraft[n],surveyDraft[n+1]];
+  if(a==="add-option")surveyDraft[n].options.push(`選択肢${surveyDraft[n].options.length+1}`);
+  if(a==="remove-option")surveyDraft[n].options.splice(Number(btn.closest('[data-option-index]').dataset.optionIndex),1);
+  renderSurveyEditor();
+});
+$("addSurveyBtn").onclick=()=>{syncSurvey();surveyDraft.push({id:`question-${Date.now()}`,title:`アンケート${surveyDraft.length+1}`,description:"",type:"radio",required:false,options:["選択肢1"]});renderSurveyEditor();};
+$("resetSurveyBtn").onclick=()=>{if(confirm("質問を基本の状態に戻しますか？")){surveyDraft=normalizeSurvey(BASIC_SURVEY);renderSurveyEditor();}};
+
 async function loadSettings(){
   $("shopIdInput").value=shopId;
 
@@ -431,8 +502,9 @@ async function loadSettings(){
     $("a4Price").value=Number(data.a4Price||0);
     $("a3Price").value=Number(data.a3Price||0);
     $("pricingMode").value=data.pricingMode||"allPaid";
-    $("surveyQuestion").value=data.surveyQuestion||defaults.surveyQuestion;
-    $("surveyOptions").value=(data.surveyOptions||defaults.surveyOptions).join("\n");
+    $("surveyEnabled").checked=data.surveyEnabled!==false;
+    surveyDraft=normalizeSurvey(Array.isArray(data.surveyQuestions)?data.surveyQuestions:[{...BASIC_SURVEY[0],description:data.surveyQuestion||defaults.surveyQuestion,options:data.surveyOptions||defaults.surveyOptions}]);
+    renderSurveyEditor();
     $("adminPin").value="";
   }catch(e){
     console.error(e);
@@ -461,8 +533,11 @@ $("shopIdInput").addEventListener("input",renderUrls);
 $("saveBtn").onclick=async()=>{
   const id=currentShopId();
   const pin=$("adminPin").value.trim();
-  const options=$("surveyOptions").value
-    .split("\n").map(v=>v.trim()).filter(Boolean);
+  syncSurvey();
+  const questions=normalizeSurvey(surveyDraft).map(q=>({...q,title:q.title.trim(),description:q.description.trim(),options:q.options.map(v=>v.trim()).filter(Boolean)}));
+  if($("surveyEnabled").checked && questions.some(q=>!q.description || (q.type!=="textarea" && !q.options.length))){
+    $("msg").textContent="質問文と選択肢を入力してください。";return;
+  }
 
   if(pin && !/^\d{4}$/.test(pin)){
     $("msg").textContent="営業所管理PINは数字4桁で入力してください。";
@@ -479,8 +554,10 @@ $("saveBtn").onclick=async()=>{
       a4Price:Number($("a4Price").value||0),
       a3Price:Number($("a3Price").value||0),
       pricingMode:$("pricingMode").value||"allPaid",
-      surveyQuestion:$("surveyQuestion").value.trim()||defaults.surveyQuestion,
-      surveyOptions:options.length?options:defaults.surveyOptions,
+      surveyEnabled:$("surveyEnabled").checked,
+      surveyQuestions:questions,
+      surveyQuestion:questions[0]?.description||defaults.surveyQuestion,
+      surveyOptions:questions[0]?.options?.length?questions[0].options:defaults.surveyOptions,
       annualCalendar2027Enabled:true,
       updatedAt:serverTimestamp()
     },{merge:true});
