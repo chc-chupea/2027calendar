@@ -224,7 +224,7 @@ button{
         <div class="survey-help">OFFにするとお客様の申込画面からアンケート全体を非表示にします。質問ごとに回答形式・必須設定・選択肢を編集できます。</div>
         <div><button type="button" id="addSurveyBtn" class="primary">＋ 質問を追加</button></div>
         <div id="surveyEditorList"></div>
-        <div><button type="button" id="resetSurveyBtn" class="ghost">基本の質問に戻す</button></div>
+        <div><button type="button" id="resetSurveyBtn" class="ghost">基本の3問に戻す</button></div>
       </div>
     </div>
 
@@ -435,7 +435,11 @@ function escapeHtml(value){
     .replaceAll("'","&#039;");
 }
 
-const BASIC_SURVEY=[{id:"calendar-source",title:"アンケート①",description:"このカレンダー企画をどこで知りましたか？",type:"radio",required:false,options:["新聞折込","営業所からの案内","家族・知人","その他"]}];
+const BASIC_SURVEY=[
+  {id:"calendar-source",title:"アンケート①",description:"このカレンダー企画をどこで知りましたか？",type:"radio",required:false,options:["新聞折込","営業所からの案内","家族・知人","その他"]},
+  {id:"subscription-status",title:"アンケート②",description:"現在の新聞購読状況を教えてください",type:"checkbox",required:false,options:["中国新聞を購読中","中国新聞デジタルを購読中","中国新聞以外の新聞を購読中","新聞は購読していない"]},
+  {id:"subscription-interest",title:"アンケート③",description:"中国新聞を購読されていない方へ",type:"checkbox",required:false,options:["中国新聞を購読したい","中国新聞を試読（７日間無料）したい","資料だけ欲しい","今は希望しない"]}
+];
 let surveyDraft=[];
 function normalizeSurvey(arr){
   return (Array.isArray(arr)?arr:BASIC_SURVEY).map((q,n)=>({
@@ -503,7 +507,10 @@ async function loadSettings(){
     $("a3Price").value=Number(data.a3Price||0);
     $("pricingMode").value=data.pricingMode||"allPaid";
     $("surveyEnabled").checked=data.surveyEnabled!==false;
-    surveyDraft=normalizeSurvey(Array.isArray(data.surveyQuestions)?data.surveyQuestions:[{...BASIC_SURVEY[0],description:data.surveyQuestion||defaults.surveyQuestion,options:data.surveyOptions||defaults.surveyOptions}]);
+    // 既存の自由編集済み質問は保持。従来の基本1問のみなら新しい基本3問を初期表示。
+    const savedQuestions=Array.isArray(data.surveyQuestions)?data.surveyQuestions:null;
+    const isLegacyBasicOnly=savedQuestions?.length===1 && savedQuestions[0]?.id==="calendar-source" && savedQuestions[0]?.description===defaults.surveyQuestion && JSON.stringify(savedQuestions[0]?.options)===JSON.stringify(defaults.surveyOptions);
+    surveyDraft=normalizeSurvey(savedQuestions && !isLegacyBasicOnly?savedQuestions:BASIC_SURVEY);
     renderSurveyEditor();
     $("adminPin").value="";
   }catch(e){

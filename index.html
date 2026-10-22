@@ -1038,7 +1038,12 @@ const defaultSettings={
   pricingMode:"allPaid",
   surveyQuestion:"このカレンダー企画をどこで知りましたか？",
   surveyOptions:["新聞折込","営業所からの案内","家族・知人","その他"],
-  surveyEnabled:true
+  surveyEnabled:true,
+  surveyQuestions:[
+  {id:"calendar-source",title:"アンケート①",description:"このカレンダー企画をどこで知りましたか？",type:"radio",required:false,options:["新聞折込","営業所からの案内","家族・知人","その他"]},
+  {id:"subscription-status",title:"アンケート②",description:"現在の新聞購読状況を教えてください",type:"checkbox",required:false,options:["中国新聞を購読中","中国新聞デジタルを購読中","中国新聞以外の新聞を購読中","新聞は購読していない"]},
+  {id:"subscription-interest",title:"アンケート③",description:"中国新聞を購読されていない方へ",type:"checkbox",required:false,options:["中国新聞を購読したい","中国新聞を試読（７日間無料）したい","資料だけ欲しい","今は希望しない"]}
+]
 };
 let shopSettings={...defaultSettings};
 
