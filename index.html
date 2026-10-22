@@ -223,6 +223,7 @@
     font-size:13px
   }
   .price-box strong{font-size:20px}
+  [hidden]{display:none!important}
   .survey-box{padding:13px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd}
   .survey-q{font-size:13px;font-weight:800;margin-bottom:8px}
   .survey-options{display:grid;gap:7px}
@@ -1372,10 +1373,16 @@ function getSurveyQuestions(){
   return [{id:"calendar-source",title:"アンケート①",description:shopSettings.surveyQuestion||defaultSettings.surveyQuestion,type:"radio",required:false,options:shopSettings.surveyOptions||defaultSettings.surveyOptions}];
 }
 function renderSurvey(){
-  const enabled=shopSettings.surveyEnabled!==false;
-  surveyBoxEl.parentElement.style.display=enabled?"":"none";
-  if(!enabled)return;
-  surveyDynamicEl.innerHTML=getSurveyQuestions().map((q,index)=>{
+  // OFFまたは質問が0件の場合は、外側のフォーム項目ごと非表示にする。
+  // 背景枠・余白を残さず、次の「個人情報」欄を上に詰める。
+  const questions=getSurveyQuestions();
+  const visible=shopSettings.surveyEnabled!==false && questions.length>0;
+  const surveyField=surveyBoxEl.closest('.form-field');
+  if(surveyField)surveyField.hidden=!visible;
+  surveyBoxEl.hidden=!visible;
+  surveyDynamicEl.innerHTML='';
+  if(!visible)return;
+  surveyDynamicEl.innerHTML=questions.map((q,index)=>{
     const name=`survey-q-${index}`,type=q.type||"radio";
     const caption=escapeHtml(q.description||q.title||`質問${index+1}`);
     const required=q.required===true?'<span class="required">必須</span>':'<span class="survey-optional-note">任意</span>';
@@ -1387,7 +1394,7 @@ function renderSurvey(){
   }).join("");
 }
 function collectSurveyAnswers(){
-  if(shopSettings.surveyEnabled===false)return [];
+  if(shopSettings.surveyEnabled===false || !getSurveyQuestions().length)return [];
   return getSurveyQuestions().map((q,index)=>{
     const nodes=[...surveyDynamicEl.querySelectorAll(`[data-survey-answer="${index}"]`)];
     const answers=(q.type==="checkbox"||q.type==="radio")?nodes.filter(el=>el.checked).map(el=>el.value):nodes.map(el=>el.value.trim()).filter(Boolean);
@@ -1395,7 +1402,7 @@ function collectSurveyAnswers(){
   });
 }
 function validateSurvey(){
-  if(shopSettings.surveyEnabled===false)return true;
+  if(shopSettings.surveyEnabled===false || !getSurveyQuestions().length)return true;
   const questions=getSurveyQuestions(),answers=collectSurveyAnswers();
   const missing=questions.findIndex((q,n)=>q.required===true && (Array.isArray(answers[n]?.answer)?!answers[n].answer.length:!answers[n]?.answer));
   if(missing>=0){alert(`アンケート「${questions[missing].description||questions[missing].title||`質問${missing+1}`}」にご回答ください。`);return false;}
