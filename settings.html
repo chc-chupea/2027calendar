@@ -172,8 +172,11 @@ button{
       営業所用4桁PINとは別です。
     </div>
     <input id="email" type="email" value="sp-fureai@soleil.ocn.ne.jp" readonly>
-    <input id="password" type="password" autocomplete="current-password"
-           placeholder="オーナー用Firebaseパスワード" style="margin-top:8px">
+    <div class="pin-line" style="margin-top:8px">
+      <input id="password" type="password" autocomplete="current-password"
+             placeholder="オーナー用Firebaseパスワード" style="margin:0">
+      <button id="toggleOwnerPassword" type="button" class="pin-eye" aria-label="パスワードを表示" aria-pressed="false">👁 表示</button>
+    </div>
     <button id="loginBtn" class="primary" style="margin-top:10px">ログイン</button>
     <div id="loginMsg" class="msg"></div>
   </div>
@@ -294,27 +297,50 @@ const defaults={
   surveyEnabled:true
 };
 
+// Firebase認証の結果を診断し、入力ミスと通信／設定エラーを区別する。
+function ownerAuthMessage(e){
+  const code=String(e?.code||"unknown");
+  const messages={
+    "auth/invalid-credential":"メールアドレスかパスワードが一致しません。Firebase Authenticationのユーザー登録とパスワードを確認してください。",
+    "auth/wrong-password":"パスワードが一致しません。",
+    "auth/user-not-found":"このメールアドレスのユーザーがFirebase Authenticationに登録されていません。",
+    "auth/user-disabled":"オーナーアカウントが無効になっています。Firebase Authenticationで確認してください。",
+    "auth/too-many-requests":"認証試行が制限されています。しばらく時間をおいて確認してください。",
+    "auth/network-request-failed":"通信に失敗しました。ネット接続やブラウザーの制限を確認してください。",
+    "auth/operation-not-allowed":"Firebase Authenticationでメール／パスワード認証が無効です。",
+    "auth/unauthorized-domain":"このサイトのドメインがFirebase Authenticationで許可されていません。",
+    "auth/invalid-api-key":"Firebase設定のAPIキーが無効です。",
+    "auth/internal-error":"Firebase認証処理で内部エラーが発生しました。"
+  };
+  return `${messages[code]||"ログインに失敗しました。Firebaseのエラーコードを確認してください。"}（${code}）`;
+}
+$("toggleOwnerPassword").onclick=()=>{
+  const input=$("password"),button=$("toggleOwnerPassword"),show=input.type==="password";
+  input.type=show?"text":"password";
+  button.textContent=show?"🙈 隠す":"👁 表示";
+  button.setAttribute("aria-pressed",String(show));
+  button.setAttribute("aria-label",show?"パスワードを隠す":"パスワードを表示");
+};
 $("loginBtn").onclick=async()=>{
   const email=$("email").value.trim().toLowerCase();
   const password=$("password").value;
-  $("loginMsg").textContent="確認中…";
-
-  if(email!==OWNER_EMAIL){
-    $("loginMsg").textContent="この画面はオーナー専用です。";
-    return;
-  }
-  if(!password){
-    $("loginMsg").textContent="パスワードを入力してください。";
-    return;
-  }
-
+  const button=$("loginBtn"),msg=$("loginMsg");
+  if(email!==OWNER_EMAIL){msg.textContent="オーナー専用アカウントではありません。";return;}
+  if(!password){msg.textContent="オーナー用パスワードを入力してください。";return;}
+  button.disabled=true;
+  msg.textContent="Firebaseで認証中…";
   try{
-    await signInWithEmailAndPassword(auth,email,password);
-    $("loginMsg").textContent="";
+    const cred=await signInWithEmailAndPassword(auth,email,password);
+    if(cred.user?.email?.toLowerCase()!==OWNER_EMAIL){
+      await signOut(auth);
+      msg.textContent="オーナー以外のアカウントでは入れません。";
+      return;
+    }
+    msg.textContent="認証できました。設定を読み込んでいます…";
   }catch(e){
-    console.error(e);
-    $("loginMsg").textContent=`ログインできませんでした。${e?.code?`（${e.code}）`:""}`;
-  }
+    console.error("Owner auth failed",e?.code||"unknown",e);
+    msg.textContent=ownerAuthMessage(e);
+  }finally{button.disabled=false;}
 };
 
 $("password").addEventListener("keydown",e=>{
