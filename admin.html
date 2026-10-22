@@ -717,23 +717,54 @@ function labelText(s,max=120){
   const v=String(s??"").replace(/\s+/g," ").trim();
   return v.length>max ? v.slice(0,max-1)+"…" : v;
 }
+// 単一回答・複数回答・質問と回答の組み合わせに対応。
+function surveyEntries(o){
+  const entries=[];
+  const add=(q,a)=>{
+    if(a===null||a===undefined||a==="")return;
+    if(Array.isArray(a)){a.forEach(x=>add(q,x));return}
+    if(typeof a==="object"){
+      if("answer" in a || "value" in a || "text" in a){
+        add(a.question||a.label||q,a.answer??a.value??a.text);
+      }else Object.entries(a).forEach(([k,v])=>add(k,v));
+      return;
+    }
+    entries.push({question:String(q||""),answer:String(a)});
+  };
+  // フォーム側の保存形式が増えても表示できるようにする。
+  if(o.surveyAnswers!==undefined && o.surveyAnswers!==null) add("",o.surveyAnswers);
+  if(o.surveyResponses!==undefined && o.surveyResponses!==null) add("",o.surveyResponses);
+  if(o.surveyAnswer!==undefined && o.surveyAnswer!==null) add(o.surveyQuestion||"",o.surveyAnswer);
+  const seen=new Set();
+  return entries.filter(x=>{
+    const key=x.question+"\u0000"+x.answer;
+    if(seen.has(key))return false;
+    seen.add(key);return true;
+  });
+}
 function makeLabelHtml(o){
   const spec=[
     o.paperSize||"A4",
     o.layoutLabel||"",
-    `${o.copies||1}枚`
+    `${o.copies||1}枚`,
+    Number.isFinite(Number(o.totalPrice)) ? `${Number(o.totalPrice).toLocaleString("ja-JP")}円` : ""
   ].filter(Boolean).join(" / ");
-
+  const survey=surveyEntries(o);
+  const surveyHtml=survey.length
+    ? survey.map((x,i)=>`<div class="survey-item"><b>${i===0?"アンケート：":""}</b>${x.question?`<span class="survey-question">${esc(x.question)}：</span>`:""}${esc(x.answer)}</div>`).join("")
+    : '<div class="survey-item"><b>アンケート：</b>—</div>';
   return `<div class="label">
-    <div class="label-top">
-      <div class="name">${esc(labelText(o.customerName,40))} 様</div>
-      <div class="receipt">${esc(o.shortId||"")}</div>
+    <div class="label-content">
+      <div class="label-top">
+        <div class="name">${esc(labelText(o.customerName,80))} 様</div>
+        <div class="receipt">${esc(o.shortId||"")}</div>
+      </div>
+      <div class="address">${esc(o.address||"")}</div>
+      <div class="phone"><b>TEL：</b>${esc(o.phone||"—")}</div>
+      <div class="spec">${esc(spec)}</div>
+      <div class="note"><b>自由記述：</b>${esc(o.freeNote||"—")}</div>
+      <div class="survey">${surveyHtml}</div>
     </div>
-    <div class="address">${esc(labelText(o.address,110))}</div>
-    <div class="phone"><b>TEL：</b>${esc(labelText(o.phone,35))}</div>
-    <div class="spec">${esc(spec)}</div>
-    <div class="note"><b>自由記述：</b>${esc(labelText(o.freeNote||"—",80))}</div>
-    <div class="survey"><b>アンケート：</b>${esc(labelText(o.surveyAnswer||"—",55))}</div>
   </div>`;
 }
 function printLabelSheet(orders){
@@ -759,21 +790,45 @@ function printLabelSheet(orders){
     }
     .label{
       width:86.4mm;height:42.3mm;
-      padding:2.1mm 2.4mm 1.7mm;
+      padding:1.6mm 2.2mm 1.4mm;
       overflow:hidden;color:#111;
-      font-size:7.8pt;line-height:1.22;
+      font-size:7.6pt;line-height:1.15;
     }
-    .label-top{display:flex;justify-content:space-between;align-items:flex-start;gap:2mm}
-    .name{font-size:10.2pt;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64mm}
-    .receipt{font-size:7pt;font-weight:800;white-space:nowrap}
-    .address{font-size:8.3pt;font-weight:600;min-height:9.6mm;max-height:9.6mm;overflow:hidden;margin-top:.7mm}
-    .phone{font-size:7.7pt;margin-top:.2mm}
-    .spec{margin-top:.4mm;border-top:.25mm solid #bbb;padding-top:.5mm;font-size:7.1pt;font-weight:700}
-    .note,.survey{font-size:6.8pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.3mm}
+    .label-content{width:100%;transform-origin:top left;overflow-wrap:anywhere;word-break:normal}
+    .label-top{display:flex;justify-content:space-between;align-items:flex-start;gap:1.5mm}
+    .name{font-size:10pt;font-weight:800;min-width:0;overflow-wrap:anywhere}
+    .receipt{font-size:7pt;font-weight:800;white-space:nowrap;flex-shrink:0}
+    .address{font-size:8.1pt;font-weight:600;margin-top:.5mm;white-space:normal}
+    .phone{font-size:7.4pt;margin-top:.2mm}
+    .spec{margin-top:.4mm;border-top:.25mm solid #bbb;padding-top:.4mm;font-size:7pt;font-weight:700}
+    .note{font-size:6.9pt;margin-top:.35mm;white-space:normal}
+    .survey{font-size:6.9pt;margin-top:.4mm;border-top:.2mm dotted #bbb;padding-top:.25mm}
+    .survey-item{white-space:normal;margin-top:.15mm;overflow-wrap:anywhere}
+    .survey-question{font-weight:700}
     .blank{visibility:hidden}
   </style></head><body>
     <div class="sheet">${labels}${blanks}</div>
-    <script>window.onload=()=>setTimeout(()=>window.print(),250);<\/script>
+    <script>
+      window.onload=()=>{
+        // 各ラベル内で文字量に合わせて自動的に縮小。12面の用紙サイズ・配置は固定。
+        document.querySelectorAll('.label:not(.blank)').forEach(label=>{
+          const content=label.querySelector('.label-content');
+          const css=getComputedStyle(label);
+          const availableH=label.clientHeight-parseFloat(css.paddingTop)-parseFloat(css.paddingBottom);
+          const availableW=label.clientWidth-parseFloat(css.paddingLeft)-parseFloat(css.paddingRight);
+          let scale=1;
+          // scaleだけでは折返し数が変わらないため、幅も合わせて広げて再計測。
+          for(let n=0;n<45;n++){
+            content.style.width=(100/scale)+'%';
+            content.style.transform='scale('+scale+')';
+            const fits=content.scrollHeight*scale<=availableH-.6 && content.scrollWidth*scale<=availableW+.6;
+            if(fits)break;
+            scale*=.96;
+          }
+        });
+        setTimeout(()=>window.print(),300);
+      };
+    <\/script>
   </body></html>`);
   w.document.close();
 }
