@@ -139,8 +139,23 @@ button{
   .shop-open{
     width:100%;
   }
+  .shop-list-head{align-items:flex-start;flex-wrap:wrap}
 }
 
+/* 既存営業所から設定を取り込む */
+.shop-list-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.shop-new{background:#e9f4fc;color:#275e8b;border:1px solid #b9d2e6;padding:9px 12px;font-size:13px}
+.copy-panel{padding:16px;border:1px solid #b9d7eb;border-radius:12px;background:#f1f8fe;margin-bottom:18px}
+.copy-panel h2{font-size:18px;margin:0 0 7px}
+.copy-panel p{font-size:13px;line-height:1.65;color:#536b7c;margin:0 0 12px}
+.copy-target{font-weight:800;color:#275e8b}
+.copy-choices{display:flex;gap:16px;flex-wrap:wrap;margin:11px 0}
+.copy-choices label{display:flex;flex-direction:row;align-items:center;gap:7px;font-size:13px}
+.copy-choices input{width:19px;height:19px;accent-color:#4f8fc7}
+.copy-panel .primary{width:100%;text-align:center}
+.copy-message{font-size:13px;line-height:1.65;margin-top:10px;min-height:1em;color:#365d7a}
+.copy-note{font-size:12px!important;margin-top:9px!important;margin-bottom:0!important}
+#shopIdInput[readonly]{background:#f0f3f6;color:#53606a}
 
 /* 質問編集 */
 .survey-manager{grid-column:1/-1;border:1px solid #dce7ef;background:#f7fbfe;border-radius:12px;padding:15px;display:grid;gap:12px}
@@ -184,7 +199,10 @@ button{
   <div id="shopListBox" class="shop-list-box hidden">
     <div class="shop-list-head">
       <h2>登録済み営業所</h2>
-      <span id="shopCount" class="shop-count"></span>
+      <div class="shop-list-tools">
+        <span id="shopCount" class="shop-count"></span>
+        <button id="newShopBtn" class="shop-new" type="button">＋ 新しい営業所を登録</button>
+      </div>
     </div>
     <div id="shopList" class="shop-list">
       <div class="list-msg">営業所一覧を読み込み中…</div>
@@ -192,6 +210,20 @@ button{
   </div>
 
   <div id="settingsCard" class="card hidden">
+    <section class="copy-panel" aria-labelledby="copyTitle">
+      <h2 id="copyTitle">他の営業所の設定を取り込む</h2>
+      <p>コピー先：<span id="copyTargetName" class="copy-target">確認中…</span><br>登録済みの営業所の設定を選んで取り込めます。取り込んだ後は内容を確認し、画面下部の「保存する」を押してください。</p>
+      <label for="copySourceShop">コピー元の営業所
+        <select id="copySourceShop"><option value="">コピー元を選択してください</option></select>
+      </label>
+      <div class="copy-choices">
+        <label><input type="checkbox" id="copyPrices" checked>料金（A4・A3・無料条件）</label>
+        <label><input type="checkbox" id="copySurvey" checked>アンケート（表示・質問・選択肢）</label>
+      </div>
+      <button type="button" id="copySettingsBtn" class="primary">選んだ設定をこの営業所に取り込む</button>
+      <div id="copyMsg" class="copy-message" role="status" aria-live="polite"></div>
+      <p class="copy-note">※ 営業所ID・営業所コード・営業所名・管理用4桁PINはコピーしません。コピー元の登録内容は変更されません。受付停止状態など、この画面にない設定もコピーしません。</p>
+    </section>
     <div class="grid">
       <label>営業所ID
         <input id="shopIdInput" placeholder="例：hatsukaichi-north">
@@ -285,6 +317,10 @@ const functions=getFunctions(app,"asia-northeast1");
 
 const params=new URLSearchParams(location.search);
 let shopId=(params.get("shop")||"main").replace(/[^a-zA-Z0-9_-]/g,"")||"main";
+
+let registeredShops=[];
+let isNewShopMode=false;
+let settingsLoadVersion=0;
 
 const defaults={
   shopName:"カレンダー受付営業所",
@@ -409,6 +445,8 @@ async function loadShopList(){
       String(a.shopName).localeCompare(String(b.shopName),"ja")
     );
 
+    registeredShops=shops;
+    renderCopySourceOptions();
     countEl.textContent=`${shops.length}営業所`;
 
     if(!shops.length){
@@ -441,8 +479,29 @@ async function loadShopList(){
 
   }catch(e){
     console.error(e);
+    registeredShops=[];
+    renderCopySourceOptions();
     box.innerHTML=`<div class="list-msg">営業所一覧を読み込めませんでした。${e?.code?`（${escapeHtml(e.code)}）`:""}</div>`;
   }
+}
+
+function renderCopySourceOptions(){
+  const el=$("copySourceShop");
+  const before=el.value;
+  const target=currentShopId();
+  const candidates=registeredShops.filter(s=>s.id!==target);
+  el.innerHTML='<option value="">コピー元を選択してください</option>'+candidates.map(s=>
+    `<option value="${escapeHtml(s.id)}">${escapeHtml(s.shopName)}（${escapeHtml(s.id)}）</option>`
+  ).join("");
+  el.value=candidates.some(s=>s.id===before)?before:"";
+  el.disabled=candidates.length===0;
+  $("copySettingsBtn").disabled=candidates.length===0;
+}
+
+function renderCopyTarget(){
+  const id=currentShopId();
+  const name=$("shopName").value.trim();
+  $("copyTargetName").textContent=id?`${name||"名称未入力"}（${id}）`:"新しい営業所（IDを入力してください）";
 }
 
 async function openShop(id){
@@ -451,11 +510,39 @@ async function openShop(id){
 
   shopId=safe;
   history.replaceState(null,"",`?shop=${encodeURIComponent(shopId)}`);
+  $("copyMsg").textContent="";
   await loadSettings();
   await loadShopList();
 
   $("settingsCard").scrollIntoView({behavior:"smooth",block:"start"});
 }
+
+$("newShopBtn").onclick=async()=>{
+  if(!confirm("現在の入力内容を破棄して、新しい営業所の登録画面を開きますか？")) return;
+  settingsLoadVersion++; // 先行する読み込みが新規入力欄を上書きしないようにする
+  isNewShopMode=true;
+  shopId="";
+  history.replaceState(null,"",location.pathname+location.hash);
+  $("shopIdInput").readOnly=false;
+  $("shopIdInput").value="";
+  $("shopName").value="";
+  $("shopCode").value="";
+  $("a4Price").value=0;
+  $("a3Price").value=0;
+  $("pricingMode").value="allPaid";
+  $("surveyEnabled").checked=true;
+  surveyDraft=normalizeSurvey(BASIC_SURVEY);
+  renderSurveyEditor();
+  clearPinInput();
+  $("msg").textContent="新しい営業所のID・コード・名称・PINを個別に設定してください。以前の料金・アンケートは上のコピー機能で取り込めます。";
+  $("copyMsg").textContent="";
+  renderUrls();
+  renderCopyTarget();
+  renderCopySourceOptions();
+  await loadShopList();
+  $("settingsCard").scrollIntoView({behavior:"smooth",block:"start"});
+  $("shopIdInput").focus();
+};
 
 $("shopList").addEventListener("click",async e=>{
   const btn=e.target.closest("[data-open-shop]");
@@ -536,44 +623,110 @@ $("surveyEditorList").addEventListener("click",e=>{
 $("addSurveyBtn").onclick=()=>{syncSurvey();surveyDraft.push({id:`question-${Date.now()}`,title:`アンケート${surveyDraft.length+1}`,description:"",type:"radio",required:false,options:["選択肢1"]});renderSurveyEditor();};
 $("resetSurveyBtn").onclick=()=>{if(confirm("質問を基本の状態に戻しますか？")){surveyDraft=normalizeSurvey(BASIC_SURVEY);renderSurveyEditor();}};
 
+function effectiveSurveyQuestions(data){
+  // 過去版の標準1問だけの場合に限り、既存画面と同じ標準3問に変換
+  const saved=Array.isArray(data.surveyQuestions)?data.surveyQuestions:null;
+  const legacy=saved?.length===1 && saved[0]?.id==="calendar-source" &&
+    saved[0]?.description===defaults.surveyQuestion &&
+    JSON.stringify(saved[0]?.options)===JSON.stringify(defaults.surveyOptions);
+  return normalizeSurvey(saved && !legacy?saved:BASIC_SURVEY);
+}
+function clearPinInput(){
+  $("adminPin").value="";
+  $("adminPin").type="password";
+  $("toggleAdminPin").textContent="👁 表示";
+  $("toggleAdminPin").setAttribute("aria-pressed","false");
+  $("toggleAdminPin").setAttribute("aria-label","PINを表示");
+}
+
+$("copySettingsBtn").onclick=async()=>{
+  const sourceId=$("copySourceShop").value;
+  const targetId=currentShopId();
+  const doPrices=$("copyPrices").checked,doSurvey=$("copySurvey").checked;
+  const msg=$("copyMsg");
+  if(!sourceId){msg.textContent="コピー元の営業所を選んでください。";return;}
+  if(sourceId===targetId){msg.textContent="コピー元とコピー先は別の営業所を選んでください。";return;}
+  if(!doPrices && !doSurvey){msg.textContent="コピーする項目を1つ以上選んでください。";return;}
+  const source=registeredShops.find(s=>s.id===sourceId);
+  if(!source){msg.textContent="コピー元が一覧にありません。営業所一覧を読み直してください。";return;}
+  const items=[doPrices?"料金":"",doSurvey?"アンケート":""].filter(Boolean).join("・");
+  if(!confirm(`「${source.shopName}」の${items}設定を、現在の入力欄に取り込みますか？\n※ コピー先の該当項目は置き換わりますが、まだFirebaseには保存されません。`))return;
+  const version=settingsLoadVersion;
+  const btn=$("copySettingsBtn");
+  btn.disabled=true;
+  msg.textContent="コピー元の最新設定を読み込み中…";
+  try{
+    const snap=await getDoc(doc(db,"settings",sourceId));
+    if(version!==settingsLoadVersion || targetId!==currentShopId()){
+      msg.textContent="コピー先が切り替わったため、取り込みを中止しました。";return;
+    }
+    if(!snap.exists() || snap.data()?.annualCalendar2027Enabled!==true){
+      msg.textContent="コピー元の設定が見つからないか、年間カレンダー用に登録されていません。";return;
+    }
+    const data=snap.data();
+    if(doPrices){
+      $("a4Price").value=Number(data.a4Price||0);
+      $("a3Price").value=Number(data.a3Price||0);
+      $("pricingMode").value=data.pricingMode==="firstFree"?"firstFree":"allPaid";
+    }
+    if(doSurvey){
+      $("surveyEnabled").checked=data.surveyEnabled!==false;
+      surveyDraft=effectiveSurveyQuestions(data);
+      renderSurveyEditor();
+    }
+    msg.textContent=`「${source.shopName}」から${items}設定を取り込みました（未保存）。下の内容を確認して「保存する」を押してください。`;
+    $("msg").textContent="コピーした設定はまだ保存されていません。内容を確認して「保存する」を押してください。";
+  }catch(e){
+    console.error("設定の取り込みに失敗",e);
+    msg.textContent=`読み込みに失敗しました。${e?.code?`（${e.code}）`:""}`;
+  }finally{renderCopySourceOptions();}
+};
+
 async function loadSettings(){
-  $("shopIdInput").value=shopId;
+  const id=shopId;
+  const version=++settingsLoadVersion;
+  $("shopIdInput").value=id;
+  $("msg").textContent="";
 
   try{
-    const snap=await getDoc(doc(db,"settings",shopId));
-    const data=snap.exists()?{...defaults,...snap.data()}:{...defaults};
-
-    $("shopName").value=data.shopName||"";
-    $("shopCode").value=data.shopCode||"C";
+    const snap=await getDoc(doc(db,"settings",id));
+    if(version!==settingsLoadVersion)return;
+    const exists=snap.exists();
+    const data=exists?{...defaults,...snap.data()}:{...defaults};
+    isNewShopMode=!exists;
+    $("shopIdInput").readOnly=exists;
+    $("shopName").value=exists?(data.shopName||""):"";
+    $("shopCode").value=exists?(data.shopCode||"C"):"";
     $("a4Price").value=Number(data.a4Price||0);
     $("a3Price").value=Number(data.a3Price||0);
-    $("pricingMode").value=data.pricingMode||"allPaid";
+    $("pricingMode").value=data.pricingMode==="firstFree"?"firstFree":"allPaid";
     $("surveyEnabled").checked=data.surveyEnabled!==false;
-    // 既存の自由編集済み質問は保持。従来の基本1問のみなら新しい基本3問を初期表示。
-    const savedQuestions=Array.isArray(data.surveyQuestions)?data.surveyQuestions:null;
-    const isLegacyBasicOnly=savedQuestions?.length===1 && savedQuestions[0]?.id==="calendar-source" && savedQuestions[0]?.description===defaults.surveyQuestion && JSON.stringify(savedQuestions[0]?.options)===JSON.stringify(defaults.surveyOptions);
-    surveyDraft=normalizeSurvey(savedQuestions && !isLegacyBasicOnly?savedQuestions:BASIC_SURVEY);
+    surveyDraft=effectiveSurveyQuestions(data);
     renderSurveyEditor();
-    $("adminPin").value="";
-    $("adminPin").type="password";
-    $("toggleAdminPin").textContent="👁 表示";
+    clearPinInput();
+    if(!exists)$("msg").textContent="未登録の営業所IDです。営業所名・コード・管理用PINを設定してください。";
   }catch(e){
+    if(version!==settingsLoadVersion)return;
     console.error(e);
     $("msg").textContent=`設定の読み込みに失敗しました。${e?.code?`（${e.code}）`:""}`;
   }
 
+  if(version!==settingsLoadVersion)return;
   renderUrls();
+  renderCopyTarget();
+  renderCopySourceOptions();
 }
 
 function currentShopId(){
-  return ($("shopIdInput").value.trim()||"main")
-    .replace(/[^a-zA-Z0-9_-]/g,"")||"main";
+  return $("shopIdInput").value.trim().replace(/[^a-zA-Z0-9_-]/g,"");
 }
 
 function renderPinStatus(){
   const id=currentShopId(),pin=confirmedPinInThisPage.get(id);
   const el=$("currentPinStatus");
-  if(pin){
+  if(!id){
+    el.textContent="営業所IDを入力してください。新しい営業所のPINは個別に設定します。";
+  }else if(pin){
     el.textContent=`${pin}（この画面で保存が確認されたPIN）`;
   }else{
     el.textContent="現在のPINは取得できません。セキュリティ保護のため既存PINの読み出しには対応していません。変更するときは上の欄に新しい4桁を入力し、保存してください。保存成功直後はここに表示します。";
@@ -583,17 +736,34 @@ function renderUrls(){
   const id=currentShopId();
   const base=new URL(".",location.href);
 
-  $("customerUrl").textContent=new URL(`index.html?shop=${id}`,base).href;
-  $("adminUrl").textContent=new URL(`admin.html?shop=${id}`,base).href;
-  $("settingsUrl").textContent=new URL(`settings.html?shop=${id}`,base).href;
+  $("customerUrl").textContent=id?new URL(`index.html?shop=${encodeURIComponent(id)}`,base).href:"営業所IDを入力すると表示します";
+  $("adminUrl").textContent=id?new URL(`admin.html?shop=${encodeURIComponent(id)}`,base).href:"営業所IDを入力すると表示します";
+  $("settingsUrl").textContent=id?new URL(`settings.html?shop=${encodeURIComponent(id)}`,base).href:"営業所IDを入力すると表示します";
   renderPinStatus();
 }
 
-$("shopIdInput").addEventListener("input",renderUrls);
+$("shopIdInput").addEventListener("input",()=>{
+  renderUrls();renderCopyTarget();renderCopySourceOptions();
+});
+$("shopName").addEventListener("input",renderCopyTarget);
 
 $("saveBtn").onclick=async()=>{
   const id=currentShopId();
+  const rawId=$("shopIdInput").value.trim();
   const pin=$("adminPin").value.trim();
+  if(!id || rawId!==id){
+    $("msg").textContent="営業所IDは半角英数字・ハイフン（-）・アンダーバー（_）だけで入力してください。";
+    return;
+  }
+  if(!$("shopName").value.trim()){
+    $("msg").textContent="営業所名を入力してください。";return;
+  }
+  if(isNewShopMode && !$("shopCode").value.trim()){
+    $("msg").textContent="新しい営業所のコードを入力してください。コピー元のコードは引き継がれません。";return;
+  }
+  if(isNewShopMode && !pin){
+    $("msg").textContent="新しい営業所の管理用4桁PINを入力してください。コピー元のPINは引き継がれません。";return;
+  }
   syncSurvey();
   const questions=normalizeSurvey(surveyDraft).map(q=>({...q,title:q.title.trim(),description:q.description.trim(),options:q.options.map(v=>v.trim()).filter(Boolean)}));
   if($("surveyEnabled").checked && questions.some(q=>!q.description || (q.type!=="textarea" && !q.options.length))){
@@ -609,6 +779,19 @@ $("saveBtn").onclick=async()=>{
   $("saveBtn").disabled=true;
   let settingsSaved=false;
   try{
+    if(isNewShopMode){
+      const existing=await getDoc(doc(db,"settings",id));
+      if(existing.exists()){
+        $("msg").textContent=`「${id}」は既に存在します。上の「登録済み営業所」から設定を開いてください。上書きはしていません。`;
+        return;
+      }
+      const code=$("shopCode").value.trim().toUpperCase();
+      const sameCode=registeredShops.find(s=>String(s.shopCode).toUpperCase()===code);
+      if(sameCode){
+        $("msg").textContent=`営業所コード「${code}」は「${sameCode.shopName}」で使用されています。別のコードを指定してください。`;
+        return;
+      }
+    }
     await setDoc(doc(db,"settings",id),{
       shopId:id,
       shopName:$("shopName").value.trim()||defaults.shopName,
@@ -624,6 +807,10 @@ $("saveBtn").onclick=async()=>{
       updatedAt:serverTimestamp()
     },{merge:true});
     settingsSaved=true;
+    shopId=id;
+    isNewShopMode=false;
+    $("shopIdInput").readOnly=true;
+    history.replaceState(null,"",`?shop=${encodeURIComponent(id)}`);
 
     if(pin){
       const setPin=httpsCallable(functions,"setAnnual2027AdminPin");
@@ -631,13 +818,13 @@ $("saveBtn").onclick=async()=>{
       confirmedPinInThisPage.set(id,pin);
     }
 
-    shopId=id;
-    history.replaceState(null,"",`?shop=${encodeURIComponent(id)}`);
-    $("adminPin").value="";
+    clearPinInput();
     $("msg").textContent=pin
       ?"保存しました。営業所管理画面は設定した4桁PINで開けます。"
-      :"保存しました。";
+      :"保存しました。既存の管理用PINは変更していません。";
+    $("copyMsg").textContent="";
     renderUrls();
+    renderCopyTarget();
     await loadShopList();
 
   }catch(e){
@@ -646,6 +833,7 @@ $("saveBtn").onclick=async()=>{
     $("msg").textContent=settingsSaved && pin
       ?`基本設定は保存しましたが、PINの登録には失敗しました（${code}）。新しいPINでログインできる状態ではありません。PINを入力したまま再保存してください。`
       :`保存できませんでした（${code}）。${e?.message||""}`;
+    if(settingsSaved){renderUrls();renderCopyTarget();await loadShopList();}
   }finally{
     $("saveBtn").disabled=false;
   }
